@@ -1,2 +1,2 @@
-# mental-healh-management
+# mental-health-management
 A mental health management system
