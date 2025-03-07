@@ -1,60 +1,52 @@
-from django.contrib.auth.forms import UserCreationForm 
-from django.contrib.auth.models import User 
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
 
-
 class SignUpForm(UserCreationForm):
-   email = forms.EmailField(label="", widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'Email Address'}))
-   first_name = forms.CharField(label="", max_length=50, widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'First Name'}))
-   last_name = forms.CharField(label="", max_length=50, widget=forms.TextInput(
-        attrs={'class': 'form-control', 'placeholder': 'Last Name'}))
-   ROLE_CHOICES = [
+    email = forms.EmailField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}))
+    first_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}))
+    last_name = forms.CharField(max_length=50, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}))
+    
+    ROLE_CHOICES = [
         ('patient', 'Patient'),
         ('professional', 'Professional'),
-        ('administrator', 'Administator'),
     ]
-   role = forms.ChoiceField(choices=ROLE_CHOICES, label="Register as")
-  
-   class Meta:
-      model = User
-      fields = ('username', 'password1', 'password2')
-   def __init__(self, *args, **kwargs):
-      super(SignUpForm, self).__init__(*args, **kwargs)
+    role = forms.ChoiceField(choices=ROLE_CHOICES, label="Register as")
+     
+    # Only required for professionals
+    license_number = forms.CharField(
+        max_length=20, 
+        required=False,  
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'License Number (Professionals Only)'}),
+    )
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2')
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove help text for username, password1, and password2
+        self.fields['username'].help_text = ''
+        self.fields['password1'].help_text = ''
+        self.fields['password2'].help_text = ''
 
-      self.fields['username'].widget.attrs['class'] = 'form-control'
-      self.fields['username'].widget.attrs['placeholder'] = 'Username'
-      self.fields['username'].label = ''
-      
+    def clean(self):
+        cleaned_data = super().clean()
+        role = cleaned_data.get('role')
+        license_number = cleaned_data.get('license_number')
 
-      self.fields['password1'].widget.attrs['class'] = 'form-control'
-      self.fields['password1'].widget.attrs['placeholder'] = 'Password'
-      self.fields['password1'].label = ''
-      self.fields['password1'].help_text = None
-
-      self.fields['password2'].widget.attrs['class'] = 'form-control'
-      self.fields['password2'].widget.attrs['placeholder'] = 'Confirm Password'
-      self.fields['password2'].label = ''
-      self.fields['password2'].help_text = None
-      
-      # Remove default help text
-      for field_name in self.fields:
-         self.fields[field_name].help_text = None
-         
-   def save(self, commit=True):
+        if role == 'professional' and not license_number:
+            raise forms.ValidationError("License number is required for professionals.")
+        return cleaned_data
+    
+    def save(self, commit=True):
         user = super().save(commit=False)
-        role = self.cleaned_data.get('role') 
-        
+        role = self.cleaned_data.get('role')
+        license_number = self.cleaned_data.get('license_number')
+
         if commit:
-            user.save()  # Now save the user first
-        
-            # Ensure no existing profile is interfering
-            UserProfile.objects.filter(user=user).delete()
-            
-            # Create a UserProfile with the correct role
-            profile = UserProfile.objects.create(user=user, role=role)
-
-
+            user.save()
+            is_verified = False if role == 'professional' else True  # Professionals need verification
+            UserProfile.objects.create(user=user, role=role, license_number=license_number, is_verified=is_verified)
         return user

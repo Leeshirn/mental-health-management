@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>Professional Dashboard</h2>
+    {% if not user.userprofile.is_verified %}
+        <div class="alert alert-warning">
+            Your account is awaiting admin approval. You cannot access professional features yet.
+        </div>
+    {% else %}
+        <p>Welcome, {{ user.first_name }}! You can now manage your patients and schedule.</p>
+        <a href="#" class="btn btn-info">Manage Patients</a>
+        <a href="#" class="btn btn-primary">View Schedule</a>
+    {% endif %}
+{% endblock %}
