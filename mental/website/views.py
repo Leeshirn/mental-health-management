@@ -7,6 +7,7 @@ from django.contrib import messages
 from .forms import SignUpForm
 from .models import UserProfile
 from django.db import models
+
 def home(request):
     return render(request, 'home.html', {})
  
@@ -17,26 +18,27 @@ def login_user(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            try:
-                profile = UserProfile.objects.get(user=user)  # Get the UserProfile
-                if profile.role == 'professional' and not profile.is_verified:
-                    messages.warning(request, 'Your account is pending verification. Please wait for admin approval.')
-                    return redirect('login')
-                login(request, user)
-                messages.success(request, 'You have been logged in.')
-                return redirect('home')
-            except UserProfile.DoesNotExist:
-                # If UserProfile does not exist, create one
-                UserProfile.objects.create(user=user, role='patient', is_verified=True)  # Default to patient
-                login(request, user)
-                messages.success(request, 'You have been logged in.')
-                return redirect('home')
+            profile, created = UserProfile.objects.get_or_create(user=user, defaults={'role': 'patient', 'is_verified': True})
+
+            # Check if professional needs verification
+            if profile.role == 'professional' and not profile.is_verified:
+                messages.warning(request, 'Your account is pending verification. Please wait for admin approval.')
+                return redirect('login')
+
+            login(request, user)
+            messages.success(request, 'You have been logged in.')
+
+            # Redirect based on role
+            if profile.role == 'professional':
+                return redirect('professional_dashboard')
+            else:
+                return redirect('patient_dashboard')
         else:
             messages.error(request, 'Invalid username or password.')
             return redirect('login')
-    
-    # If the request method is not POST, render the login page
+
     return render(request, 'login.html', {})
+
   
 def logout_user(request):
   logout(request)
@@ -58,7 +60,7 @@ def register_user(request):
             return redirect('login')
           else:
             messages.success(request, 'Your account is pending verification. You will be notified once verified.')
-            return redirect('home')  # Redirect to a "pending verification" page
+            return redirect('pending_verification')  # Redirect to a "pending verification" page
     else:
         form = SignUpForm()
     return render(request, 'register.html', {'form': form})
@@ -76,3 +78,16 @@ def professional_dashboard(request):
         return redirect('home')
 
     return render(request, 'professional_dashboard.html', {})
+
+def pending_verification(request):
+    return render(request, 'pending_verification.html', {})
+
+@login_required
+def patient_dashboard(request):
+    profile = UserProfile.objects.get(user=request.user)
+
+    if profile.role != 'patient':
+        messages.error(request, 'Unauthorized access.')
+        return redirect('home')
+
+    return render(request, 'patient_dashboard.html')
