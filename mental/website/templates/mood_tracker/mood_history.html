@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Mood History</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Mood</th>
+            <th>Sentiment Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for mood in moods %}
+        <tr>
+            <td>{{ mood.date|date:"Y-m-d" }}</td>
+            <td>{{ mood.get_mood_score_display }}</td>
+            <td>{{ mood.sentiment_score|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h3>Mood & Sentiment Trends</h3>
+<canvas id="moodChart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var moodData = JSON.parse('{{ mood_data|escapejs }}');
+
+    var ctx = document.getElementById('moodChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: moodData.dates,
+            datasets: [
+                {
+                    label: 'Mood Score',
+                    borderColor: 'blue',
+                    data: moodData.mood_scores,
+                    fill: false
+                },
+                {
+                    label: 'Sentiment Score',
+                    borderColor: 'green',
+                    data: moodData.sentiment_scores,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { min: -1, max: 5 }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

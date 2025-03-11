@@ -2,6 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
+from .models import MoodEntry
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}))
@@ -50,3 +51,13 @@ class SignUpForm(UserCreationForm):
             is_verified = False if role == 'professional' else True  # Professionals need verification
             UserProfile.objects.create(user=user, role=role, license_number=license_number, is_verified=is_verified)
         return user
+
+
+class MoodEntryForm(forms.ModelForm):
+    class Meta:
+        model = MoodEntry
+        fields = ['mood_score', 'description']
+        widgets = {
+            'mood_score': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }

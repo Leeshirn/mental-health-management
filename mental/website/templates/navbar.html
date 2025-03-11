@@ -11,6 +11,15 @@
         <a class="nav-link" href="{% url 'home' %}">Home</a>
 
         {% if user.is_authenticated %}
+          {% if user.userprofile.role == "professional" %}
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'professional_dashboard' %}">Professional Dashboard</a>
+              </li>
+          {% elif user.userprofile.role == "patient" %}
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'patient_dashboard' %}">Patient Dashboard</a>
+              </li>
+          {% endif %}
           <li class="nav-item">
               <a class="nav-link" href="{% url 'logout' %}">Logout</a>
           </li>

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
     <h2>Patient Dashboard</h2>
-    <p>Welcome, {{ user.first_name }}! You can now manage your patients and schedule.</p>
-    <a href="{% url 'home' %}" class="btn btn-primary">Return to Home</a>
+    
+    <a href="{% url 'log_mood' %}" class="btn btn-success">Log Mood</a>
+    <a href="{% url 'mood_history' %}" class="btn btn-success">Mood History</a>
+
+    
 {% endblock %}

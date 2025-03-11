@@ -1,12 +1,16 @@
+import json
+from django.http import JsonResponse
 from django.shortcuts import render, redirect 
 from django.contrib.auth import authenticate,login, logout 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import SignUpForm
-from .models import UserProfile
+from .forms import SignUpForm, MoodEntryForm
+from .models import UserProfile, MoodEntry
 from django.db import models
+
+
 
 def home(request):
     return render(request, 'home.html', {})
@@ -91,3 +95,32 @@ def patient_dashboard(request):
         return redirect('home')
 
     return render(request, 'patient_dashboard.html')
+
+def log_mood(request):
+    if request.method == 'POST':
+        form = MoodEntryForm(request.POST)
+        if form.is_valid():
+            mood_entry = form.save(commit=False)
+            mood_entry.user = request.user
+            mood_entry.save()  # Sentiment is auto-calculated in the model
+            return redirect('mood_history')
+    else:
+        form = MoodEntryForm()
+    
+    return render(request, 'mood_tracker/log_mood.html', {'form': form})
+
+@login_required
+def mood_history(request):
+    moods = MoodEntry.objects.filter(user=request.user).order_by('-date')
+    
+    # Prepare data for Chart.js
+    mood_data = {
+        "dates": [entry.date.strftime('%Y-%m-%d') for entry in moods],
+        "mood_scores": [entry.mood_score for entry in moods],
+        "sentiment_scores": [entry.sentiment_score for entry in moods]
+    }
+
+    return render(request, 'mood_tracker/mood_history.html', {
+        'moods': moods,
+        'mood_data': json.dumps(mood_data)  # Send JSON data to the template
+    })
