@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Journal Settings</h2>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_frequency" class="form-label">Prompt Frequency</label>
+            {{ form.frequency }}
+        </div>
+        <div class="mb-3" id="custom-interval" style="display: none;">
+            <label for="id_custom_interval_days" class="form-label">Custom Interval (days)</label>
+            {{ form.custom_interval_days }}
+        </div>
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        function toggleCustomInterval() {
+            let frequency = document.getElementById("id_frequency").value;
+            let customField = document.getElementById("custom-interval");
+            customField.style.display = (frequency === "custom") ? "block" : "none";
+        }
+
+        document.getElementById("id_frequency").addEventListener("change", toggleCustomInterval);
+        toggleCustomInterval();
+    });
+</script>
+{% endblock %}

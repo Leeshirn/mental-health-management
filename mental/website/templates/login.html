@@ -1,26 +1,27 @@
-
 {% extends 'base.html' %}
 
 {% block content %}
 
-  
- <div class="col-md-6 offset-md-3">
-  
-  <h1>Login</h1>
-  <br>
-  <form method="POST" action="{% url 'login' %}">
-   {% csrf_token %}
+<div class="d-flex justify-content-center align-items-center vh-100">
+  <div class="card shadow-lg p-4" style="width: 400px;">
+    <div class="card-body">
+      <h3 class="card-title text-center">Login</h3>
 
-      <div class="mb-3">
-        <input type="text" class="form-control" name="username" placeholder='Username' required>
-              
-      </div>
-      <div class="mb-3">
-          <input type="password" class="form-control" name="password" placeholder='Password' required >
-      </div>
-      <br>
-      <button type="submit" class="btn btn-primary">Login</button>
-  </form>
+      <form method="POST" action="{% url 'login' %}">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <input type="text" class="form-control" name="username" placeholder="Username" required>
+        </div>
+
+        <div class="mb-3">
+          <input type="password" class="form-control" name="password" placeholder="Password" required>
+        </div>
+
+        <button type="submit" class="btn btn-dark w-100">Login</button>
+      </form>
+    </div>
   </div>
+</div>
 
 {% endblock %}

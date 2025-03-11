@@ -1,13 +1,13 @@
 import json
 from django.http import JsonResponse
-from django.shortcuts import render, redirect 
+from django.shortcuts import render, redirect, get_object_or_404 
 from django.contrib.auth import authenticate,login, logout 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import SignUpForm, MoodEntryForm
-from .models import UserProfile, MoodEntry
+from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm
+from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt
 from django.db import models
 
 
@@ -124,3 +124,73 @@ def mood_history(request):
         'moods': moods,
         'mood_data': json.dumps(mood_data)  # Send JSON data to the template
     })
+    
+
+
+@login_required
+def journal_dashboard(request):
+    """ Display all journal entries and settings for the logged-in user """
+    entries = JournalEntry.objects.filter(user=request.user).order_by('-created_at')
+
+    
+    return render(request, 'journal/dashboard.html', {'entries': entries})
+
+@login_required
+def create_journal_entry(request):
+    """ Allow the user to write a new journal entry """
+    prompt_text = JournalPrompt.get_random_prompt()
+    
+    if request.method == 'POST':
+        form = JournalEntryForm(request.POST)
+        if form.is_valid():
+            journal_entry = form.save(commit=False)
+            journal_entry.user = request.user
+            journal_entry.save()
+            return redirect('journal_dashboard')
+        else:
+            print(form.errors)
+    else:
+        form = JournalEntryForm()
+    
+    return render(request, 'journal/new_entry.html', {'form': form, 'prompt': prompt_text})
+
+@login_required
+def edit_journal_entry(request, entry_id):
+    """ Allow users to edit their journal entry """
+    entry = get_object_or_404(JournalEntry, id=entry_id, user=request.user)
+
+    if request.method == 'POST':
+        form = JournalEntryForm(request.POST, instance=entry)
+        if form.is_valid():
+            form.save()
+            return redirect('journal_dashboard')
+    else:
+        form = JournalEntryForm(instance=entry)
+
+    return render(request, 'journal/edit_entry.html', {'form': form})
+
+@login_required
+def delete_journal_entry(request, entry_id):
+    """ Allow users to delete their journal entry """
+    entry = get_object_or_404(JournalEntry, id=entry_id, user=request.user)
+
+    if request.method == 'POST':
+        entry.delete()
+        return redirect('journal_dashboard')
+
+    return render(request, 'journal/confirm_delete.html', {'entry': entry})
+
+@login_required
+def update_journal_settings(request):
+    """ Allow users to update their journal prompt frequency """
+    settings, _ = JournalSettings.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = JournalSettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            return redirect('journal_dashboard')
+    else:
+        form = JournalSettingsForm(instance=settings)
+
+    return render(request, 'journal/settings.html', {'form': form})

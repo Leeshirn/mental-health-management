@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>New Journal Entry</h2>
+
+    <div class="alert alert-info">
+        <strong>Suggested Prompt:</strong> {{ prompt }}
+        <br>
+        <small><a href="{% url 'create_journal_entry' %}">Skip this prompt</a></small>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_title" class="form-label">Title</label>
+            {{ form.title }}
+        </div>
+        <div class="mb-3">
+            <label for="id_content" class="form-label">Write your thoughts</label>
+            {{ form.content }}
+        </div>
+       
+        <button type="submit" class="btn btn-success">Save Entry</button>
+    </form>
+</div>
+{% endblock %}

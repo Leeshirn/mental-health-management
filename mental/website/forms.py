@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
-from .models import MoodEntry
+from .models import MoodEntry, JournalEntry, JournalSettings
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}))
@@ -61,3 +61,15 @@ class MoodEntryForm(forms.ModelForm):
             'mood_score': forms.Select(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
+
+class JournalEntryForm(forms.ModelForm):
+    class Meta:
+        model = JournalEntry
+        fields = ['title', 'content']
+        
+
+class JournalSettingsForm(forms.ModelForm):
+    class Meta:
+        model = JournalSettings
+        fields = ['frequency', 'custom_interval_days']
