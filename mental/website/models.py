@@ -19,34 +19,67 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.role})"
 
+
+# Mood categories
+MOOD_CATEGORIES = [
+    ('Positive', 'Positive'),
+    ('Negative', 'Negative'),
+    ('Neutral', 'Neutral'),
+]
+
+# Mood choices with scores
+MOODS = [
+    ('happy', 'Positive', 10),
+    ('excited', 'Positive', 9),
+    ('grateful', 'Positive', 8),
+    ('content', 'Positive', 7),
+    ('hopeful', 'Positive', 6),
+    ('proud', 'Positive', 5),
+    ('relaxed', 'Positive', 5),
+    ('loved', 'Positive', 6),
+    ('confident', 'Positive', 7),
+    ('energetic', 'Positive', 8),
+    ('optimistic', 'Positive', 9),
+    ('relieved', 'Positive', 10),
+    ('calm', 'Neutral', 4),
+    ('bored', 'Neutral', 3),
+    ('indifferent', 'Neutral', 2),
+    ('tired', 'Neutral', 1),
+    ('okay', 'Neutral', 2),
+    ('apathetic', 'Neutral', 1),
+    ('unsure', 'Neutral', 3),
+    ('blank', 'Neutral', 0),
+    ('sad', 'Negative', -1),
+    ('angry', 'Negative', -2),
+    ('stressed', 'Negative', -3),
+    ('frustrated', 'Negative', -2),
+    ('anxious', 'Negative', -4),
+    ('guilty', 'Negative', -3),
+    ('lonely', 'Negative', -4),
+    ('hopeless', 'Negative', -5),
+    ('overwhelmed', 'Negative', -5),
+    ('disappointed', 'Negative', -3),
+]
+
 class MoodEntry(models.Model):
-    MOOD_CHOICES = [
-        (1, 'Very Sad'),
-        (2, 'Sad'),
-        (3, 'Neutral'),
-        (4, 'Happy'),
-        (5, 'Very Happy'),
-    ]
-
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    mood_score = models.IntegerField(choices=MOOD_CHOICES, default=3)
-    description = models.TextField(blank=True, null=True)  # Optional mood description
-    sentiment_score = models.FloatField(default=0.0)  # Sentiment Analysis Score
-    date = models.DateTimeField(auto_now_add=True)
-
-    def analyze_sentiment(self):
-        if self.description:
-            analysis = TextBlob(self.description)
-            return analysis.sentiment.polarity  # Ranges from -1 (negative) to 1 (positive)
-        return 0.0  # Default for no description
+    mood = models.CharField(max_length=50, choices=[(m[0], m[0]) for m in MOODS])
+    category = models.CharField(max_length=10, choices=MOOD_CATEGORIES, default='Neutral')
+    score = models.IntegerField(default = 1)
+    description = models.TextField(blank=True, null=True)
+    date_logged = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        self.sentiment_score = self.analyze_sentiment()
+        # Automatically assign category and score based on mood
+        for mood_name, category, score in MOODS:
+            if self.mood == mood_name:
+                self.category = category
+                self.score = score
+                break
         super().save(*args, **kwargs)
-
+    
     def __str__(self):
-        return f"{self.user.username} - {self.get_mood_score_display()} ({self.date})"
-
+        return f"{self.user.username} - {self.mood} ({self.date_logged.strftime('%Y-%m-%d %H:%M:%S')})"
 
 
 class JournalSettings(models.Model):

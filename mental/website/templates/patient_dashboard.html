@@ -1,12 +1,37 @@
 {% extends "base.html" %}
+
 {% block content %}
-    <h2>Patient Dashboard</h2>
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Patient Dashboard</h2>
     
-    <a href="{% url 'log_mood' %}" class="btn btn-success">Log Mood</a>
-    <a href="{% url 'mood_history' %}" class="btn btn-success">Mood History</a>
-    <a href="{% url 'journal_dashboard' %}" class="btn btn-success">Journal</a>
-    <a href="{% url 'mood_history' %}" class="btn btn-success">Mood History</a>
-
-
     
+    <div class="row">
+    <!-- Mood Tracker Card -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    Mood Tracker
+                </div>
+                <div class="card-body">
+                    <p>Monitor and log your moods to track your emotional well-being over time.</p>
+                    <a href="{% url 'log_mood' %}" class="btn btn-info">Log Mood</a>
+                    <a href="{% url 'mood_history' %}" class="btn btn-info">Mood History</a>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Journal Card -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    Journal
+                </div>
+                <div class="card-body">
+                    <p>Maintain your personal journal entries to reflect on your thoughts and experiences.</p>
+                    <a href="{% url 'journal_dashboard' %}" class="btn btn-primary">Go to Journal</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

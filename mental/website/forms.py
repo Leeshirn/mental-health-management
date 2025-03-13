@@ -56,11 +56,8 @@ class SignUpForm(UserCreationForm):
 class MoodEntryForm(forms.ModelForm):
     class Meta:
         model = MoodEntry
-        fields = ['mood_score', 'description']
-        widgets = {
-            'mood_score': forms.Select(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
+        fields = ['mood', 'description']
+        
 
 
 class JournalEntryForm(forms.ModelForm):

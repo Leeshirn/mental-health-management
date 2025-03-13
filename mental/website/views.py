@@ -96,6 +96,7 @@ def patient_dashboard(request):
 
     return render(request, 'patient_dashboard.html')
 
+@login_required
 def log_mood(request):
     if request.method == 'POST':
         form = MoodEntryForm(request.POST)
@@ -110,18 +111,18 @@ def log_mood(request):
     return render(request, 'mood_tracker/log_mood.html', {'form': form})
 
 @login_required
+@login_required
 def mood_history(request):
-    moods = MoodEntry.objects.filter(user=request.user).order_by('-date')
+    mood_entries = MoodEntry.objects.filter(user=request.user).order_by('-date_logged')
     
     # Prepare data for Chart.js
     mood_data = {
-        "dates": [entry.date.strftime('%Y-%m-%d') for entry in moods],
-        "mood_scores": [entry.mood_score for entry in moods],
-        "sentiment_scores": [entry.sentiment_score for entry in moods]
+        "dates": [entry.date_logged.strftime('%Y-%m-%d %H:%M:%S') for entry in mood_entries],
+        "scores": [entry.score for entry in mood_entries],
     }
 
     return render(request, 'mood_tracker/mood_history.html', {
-        'moods': moods,
+        'mood_entries': mood_entries,  # Use 'mood_entries' to match the template
         'mood_data': json.dumps(mood_data)  # Send JSON data to the template
     })
     

@@ -2,27 +2,30 @@
 
 {% block content %}
 <h2>Mood History</h2>
-
-<table class="table">
+<table>
     <thead>
         <tr>
-            <th>Date</th>
+            <th>Date Logged</th>
             <th>Mood</th>
-            <th>Sentiment Score</th>
+            <th>Category</th>
+            <th>Score</th>
+            <th>Description</th>
         </tr>
     </thead>
     <tbody>
-        {% for mood in moods %}
+        {% for entry in mood_entries %}
         <tr>
-            <td>{{ mood.date|date:"Y-m-d" }}</td>
-            <td>{{ mood.get_mood_score_display }}</td>
-            <td>{{ mood.sentiment_score|floatformat:2 }}</td>
+            <td>{{ entry.date_logged }}</td>
+            <td>{{ entry.mood }}</td>
+            <td>{{ entry.category }}</td>
+            <td>{{ entry.score }}</td>
+            <td>{{ entry.description }}</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
-<h3>Mood & Sentiment Trends</h3>
+<h3>Mood Trends</h3>
 <canvas id="moodChart"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -38,13 +41,7 @@
                 {
                     label: 'Mood Score',
                     borderColor: 'blue',
-                    data: moodData.mood_scores,
-                    fill: false
-                },
-                {
-                    label: 'Sentiment Score',
-                    borderColor: 'green',
-                    data: moodData.sentiment_scores,
+                    data: moodData.scores,
                     fill: false
                 }
             ]
@@ -52,10 +49,9 @@
         options: {
             responsive: true,
             scales: {
-                y: { min: -1, max: 5 }
+                y: { min: -6, max: 10 }
             }
         }
     });
 </script>
-
 {% endblock %}
