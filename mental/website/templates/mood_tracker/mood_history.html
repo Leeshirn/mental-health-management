@@ -10,6 +10,7 @@
             <th>Category</th>
             <th>Score</th>
             <th>Description</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -20,6 +21,11 @@
             <td>{{ entry.category }}</td>
             <td>{{ entry.score }}</td>
             <td>{{ entry.description }}</td>
+            <td>
+                <a href="{% url 'update_mood' entry.id %}">Edit</a>
+                
+                <a href="{% url 'delete_mood_entry' entry.id %}">Delete</a>
+              </td>
         </tr>
         {% endfor %}
     </tbody>

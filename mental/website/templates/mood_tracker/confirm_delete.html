@@ -1,0 +1,12 @@
+<!-- mood_tracker/templates/mood_tracker/confirm_delete.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Confirm Deletion</h2>
+<p>Are you sure you want to delete the mood entry "{{ entry.mood }}" logged on {{ entry.date_logged }}?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Confirm Delete</button>
+    <a href="{% url 'mood_history' %}">Cancel</a>
+</form>
+{% endblock %}

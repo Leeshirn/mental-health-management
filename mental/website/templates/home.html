@@ -1,60 +1,73 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% load static%}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
 
 <!-- Hero Section -->
-<div class="container-fluid bg-dark text-white text-center py-5">
-    <h1 class="display-4">Welcome to Your Mental Health Companion</h1>
-    <p class="lead">Track your emotions, write privately, and connect with professionals.</p>
-    <a href="{% url 'register' %}" class="btn btn-primary btn-lg mt-3">Get Started</a>
+<div class="container-fluid hero-section text-white text-center py-5">
+    <h1 class="display-3 fw-bold">Your Mental Health Companion</h1>
+    <p class="lead">Track emotions, journal privately, and connect with professionals.</p>
+    {% if user.is_authenticated %}
+        <a href="{% url 'patient_dashboard' %}" class="btn btn-primary btn-lg mt-3 shadow-sm">Get Started</a>
+    {% else %}
+        <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg mt-3 shadow-sm">Join Now</a>
+    {% endif %}
 </div>
 
 <!-- Features Section -->
 <div class="container mt-5">
+    <h2 class="text-center mb-4 fw-bold">Features</h2>
     <div class="row text-center">
         <div class="col-md-4">
-            <i class="fas fa-smile-beam fa-3x text-primary"></i>
-            <h3 class="mt-3">Mood Tracking</h3>
-            <p>Monitor your emotions and identify trends to improve your well-being.</p>
+            <div class="feature-card">
+                <i class="fas fa-smile-beam fa-4x text-primary"></i>
+                <h4 class="mt-3 fw-bold">Mood Tracking</h4>
+                <p>Monitor emotions and identify trends to improve well-being.</p>
+            </div>
         </div>
         <div class="col-md-4">
-            <i class="fas fa-book-open fa-3x text-success"></i>
-            <h3 class="mt-3">Private Journal</h3>
-            <p>Write your thoughts freely with AI-generated prompts and sentiment insights.</p>
+            <div class="feature-card">
+                <i class="fas fa-book-open fa-4x text-success"></i>
+                <h4 class="mt-3 fw-bold">Private Journal</h4>
+                <p>Write freely with AI-generated prompts and sentiment insights.</p>
+            </div>
         </div>
         <div class="col-md-4">
-            <i class="fas fa-user-md fa-3x text-warning"></i>
-            <h3 class="mt-3">Professional Support</h3>
-            <p>Connect with licensed mental health professionals for guidance.</p>
+            <div class="feature-card">
+                <i class="fas fa-user-md fa-4x text-warning"></i>
+                <h4 class="mt-3 fw-bold">Professional Support</h4>
+                <p>Connect with licensed professionals for guidance.</p>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Testimonials Section -->
 <div class="container mt-5">
-    <h2 class="text-center">What Our Users Say</h2>
+    <h2 class="text-center fw-bold">What Our Users Say</h2>
     <div class="row mt-4">
         <div class="col-md-4">
-            <div class="card shadow">
+            <div class="card testimonial-card shadow-sm">
                 <div class="card-body">
-                    <p>"This platform has changed the way I understand my emotions. The journal feature is amazing!"</p>
-                    <h5 class="text-muted">- Alex</h5>
+                    <p class="text-muted">"This platform has changed how I understand my emotions!"</p>
+                    <h5 class="text-primary">- Alex</h5>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card shadow">
+            <div class="card testimonial-card shadow-sm">
                 <div class="card-body">
-                    <p>"Having access to professionals and tracking my mood daily has been a game changer for me."</p>
-                    <h5 class="text-muted">- Jordan</h5>
+                    <p class="text-muted">"Tracking my mood daily has been a game-changer!"</p>
+                    <h5 class="text-success">- Jordan</h5>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card shadow">
+            <div class="card testimonial-card shadow-sm">
                 <div class="card-body">
-                    <p>"The AI-generated journal prompts really help me reflect on my thoughts. Highly recommend!"</p>
-                    <h5 class="text-muted">- Casey</h5>
+                    <p class="text-muted">"The AI-generated prompts help me reflect better!"</p>
+                    <h5 class="text-warning">- Casey</h5>
                 </div>
             </div>
         </div>
@@ -63,12 +76,16 @@
 
 <!-- Call to Action -->
 <div class="container text-center my-5">
-    <h2>Ready to Begin Your Mental Wellness Journey?</h2>
-    <a href="{% url 'register' %}" class="btn btn-success btn-lg mt-3">Join Now</a>
+    <h2 class="fw-bold">Ready to Begin Your Mental Wellness Journey?</h2>
+    {% if user.is_authenticated %}
+        <a href="{% url 'patient_dashboard' %}" class="btn btn-success btn-lg mt-3 shadow">Start Now</a>
+    {% else %}
+        <a href="{% url 'register' %}" class="btn btn-outline-success btn-lg mt-3 shadow">Join Now</a>
+    {% endif %}
 </div>
 
 <!-- Footer -->
-<footer class="bg-dark text-white text-center py-3">
+<footer class="footer-section text-white text-center py-3">
     <p>&copy; 2025 Mental Health Management System | All Rights Reserved</p>
 </footer>
 

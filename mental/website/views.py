@@ -126,7 +126,25 @@ def mood_history(request):
         'mood_data': json.dumps(mood_data)  # Send JSON data to the template
     })
     
+@login_required
+def update_mood(request, entry_id):
+    entry = get_object_or_404(MoodEntry, id=entry_id, user=request.user)
+    if request.method == 'POST':
+        form = MoodEntryForm(request.POST, instance=entry)
+        if form.is_valid():
+            form.save()
+            return redirect('mood_history')
+    else:
+        form = MoodEntryForm(instance=entry)
+    return render(request, 'mood_tracker/update_mood.html', {'form': form})
 
+@login_required
+def delete_mood_entry(request, entry_id):
+    entry = get_object_or_404(MoodEntry, id=entry_id, user=request.user)
+    if request.method == 'POST':
+        entry.delete()
+        return redirect('mood_history')
+    return render(request, 'mood_tracker/confirm_delete.html', {'entry': entry})
 
 @login_required
 def journal_dashboard(request):
