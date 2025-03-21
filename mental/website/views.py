@@ -9,7 +9,9 @@ from django.contrib import messages
 from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm
 from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt
 from django.db import models
-
+from django.db.models import Max, Count
+from datetime import timedelta, datetime
+from django.utils import timezone
 
 
 def home(request):
@@ -111,13 +113,12 @@ def log_mood(request):
     return render(request, 'mood_tracker/log_mood.html', {'form': form})
 
 @login_required
-@login_required
 def mood_history(request):
     mood_entries = MoodEntry.objects.filter(user=request.user).order_by('-date_logged')
     
     # Prepare data for Chart.js
     mood_data = {
-        "dates": [entry.date_logged.strftime('%Y-%m-%d %H:%M:%S') for entry in mood_entries],
+        "dates": [entry.date_logged.strftime('%Y-%m-%d') for entry in mood_entries],
         "scores": [entry.score for entry in mood_entries],
     }
 
@@ -136,7 +137,7 @@ def update_mood(request, entry_id):
             return redirect('mood_history')
     else:
         form = MoodEntryForm(instance=entry)
-    return render(request, 'mood_tracker/update_mood.html', {'form': form})
+    return render(request, 'mood_tracker/update_mood.html', {'form': form, 'entry': entry})
 
 @login_required
 def delete_mood_entry(request, entry_id):
@@ -145,6 +146,57 @@ def delete_mood_entry(request, entry_id):
         entry.delete()
         return redirect('mood_history')
     return render(request, 'mood_tracker/confirm_delete.html', {'entry': entry})
+
+@login_required
+def mood_report(request):
+    # Get the period from the query parameter (default to 'daily')
+    period = request.GET.get('period', 'daily')
+    
+    today = timezone.now()
+    
+    # Calculate start_date and end_date based on the period
+    if period == 'daily':
+        start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)  # Start of the day (00:00)
+        end_date = today.replace(hour=23, minute=59, second=59, microsecond=999999)  # End of the day (23:59)
+    elif period == 'weekly':
+        start_date = today - timedelta(days=today.weekday())  # Start of the week (Monday)
+        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59, microseconds=999999)  # End of the week (Sunday)
+    elif period == 'monthly':
+        start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)  # Start of the month (1st day)
+        # Calculate the last day of the month
+        next_month = start_date.replace(day=28) + timedelta(days=4)  # Move to the next month
+        end_date = next_month - timedelta(days=next_month.day)  # Last day of the current month
+        end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    
+    # Filter entries based on the period
+    entries = MoodEntry.objects.filter(user=request.user, date_logged__range=[start_date, end_date])
+    
+    # Count occurrences of each mood
+    mood_counts = entries.values('mood').annotate(count=Count('mood')).order_by('mood')
+    
+    # Calculate maximum mood experienced
+    max_mood = entries.aggregate(Max('score'))['score__max']
+    
+    # Calculate total number of mood entries
+    total_entries = entries.count()
+    
+    # Prepare data for Chart.js (optional)
+    mood_data = {
+        "dates": [entry.date_logged.strftime('%Y-%m-%d %H:%M:%S') for entry in entries],
+        "scores": [entry.score for entry in entries],
+    }
+
+    context = {
+        'period': period,
+        'start_date': start_date,
+        'end_date': end_date,
+        'mood_counts': mood_counts,
+        'max_mood': max_mood,
+        'total_entries': total_entries,
+        'mood_data': json.dumps(mood_data),  # For Chart.js
+    }
+    return render(request, 'mood_tracker/mood_report.html', context)
 
 @login_required
 def journal_dashboard(request):

@@ -57,7 +57,14 @@ class MoodEntryForm(forms.ModelForm):
     class Meta:
         model = MoodEntry
         fields = ['mood', 'description']
-        
+        widgets = {
+             'description': forms.Textarea(attrs={
+                'rows': 3,  # Number of visible rows (adjust as needed)
+                'cols': 40,  # Number of visible columns (adjust as needed)
+                'style': 'resize: none; width: 100%; max-width: 500px;',  # Disable resizing and set width
+                'class': 'form-control',
+            }),
+        }
 
 
 class JournalEntryForm(forms.ModelForm):

@@ -21,6 +21,9 @@
                   <a class="nav-link {% if request.resolver_match.url_name == 'patient_dashboard' %}active{% endif %}" href="{% url 'patient_dashboard' %}">Patient Dashboard</a>
               </li>
           {% endif %}
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'mood_report' %}active{% endif %}" href="{% url 'mood_report' %}">Mood Report</a>
+        </li>
         {% endif %}
       </ul>
 

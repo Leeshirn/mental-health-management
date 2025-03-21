@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{{ period|title }} Mood Report</h2>
+<p><strong>Report Period:</strong> {{ start_date|date:"Y-m-d" }} to {{ end_date|date:"Y-m-d " }}</p>
+
+<!-- Summary Section -->
+<div>
+    <p><strong>Total Mood Entries:</strong> {{ total_entries }}</p>
+</div>
+
+<p>View reports for:
+    <a href="?period=daily">Daily</a> |
+    <a href="?period=weekly">Weekly</a> |
+    <a href="?period=monthly">Monthly</a>
+</p>
+
+<!-- Mood Counts Table -->
+<h3>Mood Counts</h3>
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Mood</th>
+            <th>Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for mood in mood_counts %}
+            <tr>
+                <td>{{ mood.mood }}</td>
+                <td>{{ mood.count }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Mood Trends Chart -->
+<h3>Mood Trends</h3>
+<canvas id="moodChart"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var moodData = JSON.parse('{{ mood_data|escapejs }}');
+
+    var ctx = document.getElementById('moodChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: moodData.dates,
+            datasets: [
+                {
+                    label: 'Mood Score',
+                    borderColor: 'blue',
+                    data: moodData.scores,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { min: -6, max: 10 }
+            }
+        }
+    });
+</script>
+
+
+<a href="{% url 'mood_history' %}">Back to Mood History</a>
+{% endblock %}

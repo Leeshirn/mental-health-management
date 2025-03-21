@@ -1,63 +1,33 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2>Mood History</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Date Logged</th>
-            <th>Mood</th>
-            <th>Category</th>
-            <th>Score</th>
-            <th>Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for entry in mood_entries %}
-        <tr>
-            <td>{{ entry.date_logged }}</td>
-            <td>{{ entry.mood }}</td>
-            <td>{{ entry.category }}</td>
-            <td>{{ entry.score }}</td>
-            <td>{{ entry.description }}</td>
-            <td>
-                <a href="{% url 'update_mood' entry.id %}">Edit</a>
-                
-                <a href="{% url 'delete_mood_entry' entry.id %}">Delete</a>
-              </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<h3>Mood Trends</h3>
-<canvas id="moodChart"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    var moodData = JSON.parse('{{ mood_data|escapejs }}');
-
-    var ctx = document.getElementById('moodChart').getContext('2d');
-    var chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: moodData.dates,
-            datasets: [
-                {
-                    label: 'Mood Score',
-                    borderColor: 'blue',
-                    data: moodData.scores,
-                    fill: false
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { min: -6, max: 10 }
-            }
-        }
-    });
-</script>
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Mood History</h2>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Mood</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in mood_entries %}
+                <tr>
+                    <th scope="row">{{ forloop.counter }}</th>
+                    <td>{{ entry.mood }}</td>
+                    <td>{{ entry.category }}</td>
+                    <td>{{ entry.score }}</td>
+                    <td>
+                        <a href="{% url 'update_mood' entry.id %}" class="text-decoration-none text-primary">{{ entry.description }}</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}
