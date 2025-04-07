@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django_countries.fields import CountryField
 from textblob import TextBlob 
 import random
 
@@ -139,3 +140,82 @@ def populate_prompts():
     ]
     for prompt_text in prompts:
         JournalPrompt.objects.get_or_create(text=prompt_text)
+
+
+class MentalHealthProfessional(models.Model):
+    PROFESSION_CHOICES = [
+        ('PSY', 'Psychiatrist'),
+        ('CLP', 'Clinical Psychologist'),
+        ('CP', 'Counseling Psychologist'),
+        ('SW', 'Clinical Social Worker'),
+        ('MFT', 'Marriage & Family Therapist'),
+        ('LPC', 'Licensed Professional Counselor'),
+        ('ART', 'Art Therapist'),
+        ('MHC', 'Mental Health Counselor'),
+    ]
+
+    APPROACH_CHOICES = [
+        ('CBT', 'Cognitive Behavioral Therapy'),
+        ('PDY', 'Psychodynamic Therapy'),
+        ('HMN', 'Humanistic Therapy'),
+        ('INT', 'Integrative Therapy'),
+        ('DBT', 'Dialectical Behavior Therapy'),
+        ('ACT', 'Acceptance & Commitment Therapy'),
+        ('EMD', 'EMDR'),
+        ('SOL', 'Solution-Focused Therapy'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mental_health_pro')
+    profession = models.CharField(max_length=3, choices=PROFESSION_CHOICES)
+    license_number = models.CharField(max_length=50, unique=True)
+    license_state = models.CharField(max_length=50)
+    therapeutic_approaches = models.CharField(max_length=200)  # Comma-separated list of APPROACH_CHOICES
+    bio = models.TextField(blank=True)
+    profile_complete = models.BooleanField(default=False)
+    
+    # Professional Details
+    years_of_experience = models.PositiveIntegerField(default=0)
+    qualifications = models.TextField()
+    areas_of_focus = models.TextField(help_text="Specific mental health conditions or populations you specialize in")
+    
+    # Practice Information
+    practice_name = models.CharField(max_length=200, blank=True)
+    website = models.URLField(blank=True)
+    accepts_insurance = models.BooleanField(default=False)
+    sliding_scale = models.BooleanField(default=False)
+    
+    # Contact Information
+    phone = models.CharField(max_length=20)
+    emergency_contact = models.CharField(max_length=20, blank=True)
+    address = models.TextField(blank=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    country = CountryField()
+    postal_code = models.CharField(max_length=20)
+    
+    # Session Details
+    session_format = models.CharField(max_length=100, 
+                                   choices=[('INP', 'In-person'), ('ONL', 'Online'), ('BOTH', 'Both')])
+    session_length = models.PositiveIntegerField(default=50, help_text="Typical session length in minutes")
+    session_fee = models.DecimalField(max_digits=6, decimal_places=2, default=0.00,  # Add default value
+        help_text="Fee per session in your local currency")
+    
+    # Availability
+    availability = models.TextField(help_text="Your typical availability (e.g., Mon-Wed 9am-5pm)")
+    
+    # Media
+    profile_picture = models.ImageField(upload_to='therapists/profile_pics/', blank=True)
+    license_verification = models.FileField(upload_to='therapists/license_docs/')
+    
+    # Emergency Protocols
+    crisis_protocol = models.TextField(blank=True, help_text="Your protocol for handling client crises")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.get_profession_display()}"
+
+    def get_approaches_list(self):
+        return [dict(self.APPROACH_CHOICES).get(code, code) 
+                for code in self.therapeutic_approaches.split(',')]

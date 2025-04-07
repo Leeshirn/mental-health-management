@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Complete Your Professional Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3>Complete Your Professional Profile</h3>
+                    <p class="mb-0">Help clients find the right mental health support</p>
+                </div>
+                
+                <div class="card-body">
+                    {% if not profile_complete %}
+                    <div class="alert alert-warning">
+                        <strong>Incomplete Profile:</strong> Please complete your profile to be visible to clients.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h4 class="border-bottom pb-2">Basic Information</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.first_name.label_tag }}
+                                        {{ form.first_name }}
+                                        {% if form.first_name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.first_name.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.last_name.label_tag }}
+                                        {{ form.last_name }}
+                                        {% if form.last_name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.last_name.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.email.label_tag }}
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.email.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.profile_picture.label_tag }}
+                                {{ form.profile_picture }}
+                                {% if form.profile_picture.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.profile_picture.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if professional.profile_picture %}
+                                    <div class="mt-2">
+                                        <img src="{{ professional.profile_picture.url }}" width="100" class="img-thumbnail">
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.bio.label_tag }}
+                                {{ form.bio }}
+                                <small class="text-muted">Tell clients about your background and approach</small>
+                                {% if form.bio.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.bio.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="border-bottom pb-2">Professional Credentials</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.profession.label_tag }}
+                                        {{ form.profession }}
+                                        {% if form.profession.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.profession.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.years_of_experience.label_tag }}
+                                        {{ form.years_of_experience }}
+                                        {% if form.years_of_experience.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.years_of_experience.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.license_number.label_tag }}
+                                        {{ form.license_number }}
+                                        {% if form.license_number.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.license_number.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.license_state.label_tag }}
+                                        {{ form.license_state }}
+                                        {% if form.license_state.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.license_state.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.license_verification.label_tag }}
+                                {{ form.license_verification }}
+                                <small class="text-muted">Upload a copy of your professional license</small>
+                                {% if form.license_verification.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.license_verification.errors }}
+                                    </div>
+                                {% endif %}
+                                {% if professional.license_verification %}
+                                    <div class="mt-2">
+                                        <a href="{{ professional.license_verification.url }}" target="_blank">View current document</a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.qualifications.label_tag }}
+                                {{ form.qualifications }}
+                                <small class="text-muted">Degrees, certifications, and training</small>
+                                {% if form.qualifications.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.qualifications.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label>Therapeutic Approaches</label>
+                                <div class="border p-3 rounded">
+                                    {{ form.therapeutic_approaches }}
+                                </div>
+                                {% if form.therapeutic_approaches.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.therapeutic_approaches.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.areas_of_focus.label_tag }}
+                                {{ form.areas_of_focus }}
+                                <small class="text-muted">Specific conditions, populations, or issues you specialize in</small>
+                                {% if form.areas_of_focus.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.areas_of_focus.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Continue with other sections (Practice Information, Contact Info, Session Details) -->
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'profile_preview' %}" class="btn btn-outline-secondary me-md-2">
+                                Preview Profile
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                Save Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

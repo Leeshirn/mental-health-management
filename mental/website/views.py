@@ -6,8 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm
-from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt
+from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm
+from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional
 from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
@@ -149,54 +149,63 @@ def delete_mood_entry(request, entry_id):
 
 @login_required
 def mood_report(request):
-    # Get the period from the query parameter (default to 'daily')
-    period = request.GET.get('period', 'daily')
-    
-    today = timezone.now()
-    
-    # Calculate start_date and end_date based on the period
-    if period == 'daily':
-        start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)  # Start of the day (00:00)
-        end_date = today.replace(hour=23, minute=59, second=59, microsecond=999999)  # End of the day (23:59)
-    elif period == 'weekly':
-        start_date = today - timedelta(days=today.weekday())  # Start of the week (Monday)
-        start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = start_date + timedelta(days=6, hours=23, minutes=59, seconds=59, microseconds=999999)  # End of the week (Sunday)
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+    period = request.GET.get('period')  # New line
+
+    today = timezone.now().date()
+    error_message = None
+
+    if period == 'weekly':
+        end_date = today
+        start_date = end_date - timedelta(days=6)  # Go 6 days back, today is included
     elif period == 'monthly':
-        start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)  # Start of the month (1st day)
-        # Calculate the last day of the month
-        next_month = start_date.replace(day=28) + timedelta(days=4)  # Move to the next month
-        end_date = next_month - timedelta(days=next_month.day)  # Last day of the current month
-        end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-    
-    # Filter entries based on the period
-    entries = MoodEntry.objects.filter(user=request.user, date_logged__range=[start_date, end_date])
-    
-    # Count occurrences of each mood
+        start_date = today.replace(day=1)
+        next_month = start_date + timedelta(days=32)
+        end_date = next_month.replace(day=1) - timedelta(days=1)
+    elif start_date_str and end_date_str:
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+
+        if start_date > today:
+            error_message = "Start date cannot be in the future."
+        elif start_date > end_date:
+            error_message = "Start date cannot be after the end date."
+    else:
+        start_date = today
+        end_date = today
+
+    if error_message:
+        return render(request, 'mood_tracker/mood_report.html', {
+            'error_message': error_message,
+            'start_date': today,
+            'end_date': today,
+            'mood_counts': [],
+            'total_entries': 0,
+            'mood_data': json.dumps({"dates": [], "scores": []}),
+        })
+
+    end_date_with_time = datetime.combine(end_date, datetime.max.time())
+    start_date_with_time = datetime.combine(start_date, datetime.min.time())
+
+    entries = MoodEntry.objects.filter(user=request.user, date_logged__range=[start_date_with_time, end_date_with_time])
     mood_counts = entries.values('mood').annotate(count=Count('mood')).order_by('mood')
-    
-    # Calculate maximum mood experienced
-    max_mood = entries.aggregate(Max('score'))['score__max']
-    
-    # Calculate total number of mood entries
     total_entries = entries.count()
-    
-    # Prepare data for Chart.js (optional)
+
     mood_data = {
         "dates": [entry.date_logged.strftime('%Y-%m-%d %H:%M:%S') for entry in entries],
         "scores": [entry.score for entry in entries],
     }
 
     context = {
-        'period': period,
         'start_date': start_date,
         'end_date': end_date,
         'mood_counts': mood_counts,
-        'max_mood': max_mood,
         'total_entries': total_entries,
-        'mood_data': json.dumps(mood_data),  # For Chart.js
+        'mood_data': json.dumps(mood_data),
     }
     return render(request, 'mood_tracker/mood_report.html', context)
+
 
 @login_required
 def journal_dashboard(request):
@@ -265,3 +274,67 @@ def update_journal_settings(request):
         form = JournalSettingsForm(instance=settings)
 
     return render(request, 'journal/settings.html', {'form': form})
+
+
+@login_required
+def professional_profile(request):
+    try:
+        # Try to get existing profile or create with safe defaults
+        professional, created = MentalHealthProfessional.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'session_fee': 0,
+            
+                
+            }
+        )
+        
+        if created:
+            messages.info(request, "Welcome! Please complete your professional profile.")
+
+    except Exception as e:
+        messages.error(request, f"Error accessing profile: {str(e)}")
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = MentalHealthProfessionalForm(request.POST, request.FILES, instance=professional)
+        if form.is_valid():
+            # Ensure user field isn't overwritten
+            profile = form.save(commit=False)
+            profile.user = request.user
+            profile.save()
+            form.save_m2m()  # For many-to-many fields
+            
+            # Update completion status (customize your logic)
+            required_fields_complete = all(
+                getattr(profile, field) not in [None, '', 0] 
+                for field in MentalHealthProfessionalForm.required_fields
+            )
+            profile.profile_complete = required_fields_complete
+            profile.save()
+            
+            messages.success(request, "Profile updated successfully!")
+            return redirect('professional_profile')
+    else:
+        form = MentalHealthProfessionalForm(instance=professional)
+
+    context = {
+        'form': form,
+        'professional': professional,
+        'profile_complete': professional.profile_complete,
+    }
+    return render(request, 'profile.html', context)
+
+@login_required
+def profile_preview(request):
+    try:
+        professional = request.user.mental_health_pro
+    except MentalHealthProfessional.DoesNotExist:
+        messages.error(request, "This account is not registered as a mental health professional.")
+        return redirect('home')
+    
+    context = {
+        'professional': professional,
+        'approaches': professional.get_approaches_list(),
+    }
+    return render(request, 'profile_preview.html', context)

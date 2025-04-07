@@ -8,6 +8,7 @@
             <thead class="thead-dark">
                 <tr>
                     <th scope="col">#</th>
+                    <th scope="col">Date Logged</th>
                     <th scope="col">Mood</th>
                     <th scope="col">Category</th>
                     <th scope="col">Score</th>
@@ -18,12 +19,15 @@
                 {% for entry in mood_entries %}
                 <tr>
                     <th scope="row">{{ forloop.counter }}</th>
+                    <td>{{ entry.date_logged }}</td>
                     <td>{{ entry.mood }}</td>
                     <td>{{ entry.category }}</td>
                     <td>{{ entry.score }}</td>
                     <td>
                         <a href="{% url 'update_mood' entry.id %}" class="text-decoration-none text-primary">{{ entry.description }}</a>
                     </td>
+
+                    
                 </tr>
                 {% endfor %}
             </tbody>

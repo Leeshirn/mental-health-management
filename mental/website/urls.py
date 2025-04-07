@@ -19,4 +19,6 @@ urlpatterns = [
     path('journal/edit/<int:entry_id>/', views.edit_journal_entry, name='edit_journal_entry'),
     path('journal/delete/<int:entry_id>/', views.delete_journal_entry, name='delete_journal_entry'),
     path('journal/settings/', views.update_journal_settings, name='update_journal_settings'),
+    path('professional_profile/', views.professional_profile, name='professional_profile'),
+    path('profile_preview/', views.profile_preview, name='profile_preview'),
 ]

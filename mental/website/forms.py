@@ -2,7 +2,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
-from .models import MoodEntry, JournalEntry, JournalSettings
+from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional
+from django.core.validators import MinValueValidator
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Email Address'}))
@@ -77,3 +78,79 @@ class JournalSettingsForm(forms.ModelForm):
     class Meta:
         model = JournalSettings
         fields = ['frequency', 'custom_interval_days']
+
+
+class MentalHealthProfessionalForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+    email = forms.EmailField(required=True)
+    
+    therapeutic_approaches = forms.MultipleChoiceField(
+        choices=MentalHealthProfessional.APPROACH_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=True
+    )
+    
+    class Meta:
+        model = MentalHealthProfessional
+        fields = [
+            'first_name', 'last_name', 'email',
+            'profession', 'license_number', 'license_state',
+            'therapeutic_approaches', 'bio',
+            'years_of_experience', 'qualifications', 'areas_of_focus',
+            'practice_name', 'website', 'accepts_insurance', 'sliding_scale',
+            'phone', 'emergency_contact', 'address', 'city', 
+            'state', 'country', 'postal_code',
+            'session_format', 'session_length', 'session_fee',
+            'availability', 'profile_picture', 'license_verification',
+            'crisis_protocol'
+        ]
+        widgets = {
+            'bio': forms.Textarea(attrs={'rows': 4, 'placeholder': 'Your professional background and philosophy'}),
+            'qualifications': forms.Textarea(attrs={'rows': 3}),
+            'areas_of_focus': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'e.g., Anxiety, Depression, LGBTQ+ issues, Trauma'
+            }),
+            'availability': forms.Textarea(attrs={
+                'rows': 2,
+                'placeholder': 'e.g., Monday-Thursday 9am-7pm, Friday 9am-3pm'
+            }),
+            'crisis_protocol': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Describe how you handle emergency situations'
+            }),
+        }
+        help_texts = {
+            'session_fee': 'Your standard fee per session',
+            'sliding_scale': 'Do you offer sliding scale fees based on income?',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.user:
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['email'].initial = self.instance.user.email
+            if self.instance.therapeutic_approaches:
+                self.fields['therapeutic_approaches'].initial = self.instance.therapeutic_approaches.split(',')
+    
+    def clean_therapeutic_approaches(self):
+        approaches = self.cleaned_data.get('therapeutic_approaches')
+        return ','.join(approaches)
+    
+    def save(self, commit=True):
+        professional = super().save(commit=False)
+        
+        # Update User model fields
+        user = professional.user
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        user.email = self.cleaned_data['email']
+        
+        if commit:
+            user.save()
+            professional.profile_complete = True
+            professional.save()
+        
+        return professional
