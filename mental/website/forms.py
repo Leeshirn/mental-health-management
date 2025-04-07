@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
-from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional
+from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional, PatientProfile
 from django.core.validators import MinValueValidator
 
 class SignUpForm(UserCreationForm):
@@ -78,6 +78,13 @@ class JournalSettingsForm(forms.ModelForm):
     class Meta:
         model = JournalSettings
         fields = ['frequency', 'custom_interval_days']
+
+
+
+class PatientProfileForm(forms.ModelForm):
+    class Meta:
+        model = PatientProfile
+        fields = ['birth_date', 'gender', 'phone', 'profile_picture']
 
 
 class MentalHealthProfessionalForm(forms.ModelForm):

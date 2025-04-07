@@ -21,4 +21,7 @@ urlpatterns = [
     path('journal/settings/', views.update_journal_settings, name='update_journal_settings'),
     path('professional_profile/', views.professional_profile, name='professional_profile'),
     path('profile_preview/', views.profile_preview, name='profile_preview'),
+    path('profile_view/', views.profile_view, name='profile_view'),
+    path('edit_profile_view/', views.edit_profile_view, name='edit_profile_view'),
+    path('profile_summary_view/', views.profile_summary_view, name='profile_summary_view'),
 ]

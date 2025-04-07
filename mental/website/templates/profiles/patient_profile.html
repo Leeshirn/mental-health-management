@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>My Profile</h2>
+
+{% if profile.profile_picture %}
+    <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%;">
+{% else %}
+    <p>No profile picture uploaded.</p>
+{% endif %}
+
+<form method="POST" enctype="multipart/form-data">  <!-- 👈 Required for images -->
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Update Profile</button>
+</form>
+{% endblock %}

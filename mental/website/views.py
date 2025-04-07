@@ -6,8 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm
-from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional
+from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm, PatientProfileForm
+from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional, PatientProfile
 from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
@@ -275,6 +275,38 @@ def update_journal_settings(request):
 
     return render(request, 'journal/settings.html', {'form': form})
 
+@login_required
+def profile_view(request):
+    profile, created = PatientProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = PatientProfileForm(request.POST, request.FILES, instance=profile)  
+        if form.is_valid():
+            form.save()
+            return redirect('profile_view')
+    else:
+        form = PatientProfileForm(instance=profile)
+    return render(request, 'profiles/patient_profile.html', {'form': form, 'profile': profile})
+
+@login_required
+def edit_profile_view(request):
+    profile, _ = PatientProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = PatientProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            return redirect('profile_summary')  # Redirect to summary after saving
+    else:
+        form = PatientProfileForm(instance=profile)
+
+    return render(request, 'profiles/patient_edit_profile.html', {'form': form})
+
+@login_required
+def profile_summary_view(request):
+    profile = PatientProfile.objects.get(user=request.user)
+    return render(request, 'profiles/patient_profile_summary.html', {'profile': profile})
+
 
 @login_required
 def professional_profile(request):
@@ -323,7 +355,7 @@ def professional_profile(request):
         'professional': professional,
         'profile_complete': professional.profile_complete,
     }
-    return render(request, 'profile.html', context)
+    return render(request, 'profiles/professional_profile.html', context)
 
 @login_required
 def profile_preview(request):
@@ -337,4 +369,4 @@ def profile_preview(request):
         'professional': professional,
         'approaches': professional.get_approaches_list(),
     }
-    return render(request, 'profile_preview.html', context)
+    return render(request, 'profiles/professional_profile_preview.html', context)

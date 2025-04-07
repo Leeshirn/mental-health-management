@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django_countries.fields import CountryField
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from textblob import TextBlob 
 import random
 
@@ -20,6 +22,21 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.role})"
 
+
+
+class PatientProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    birth_date = models.DateField(null=True, blank=True)
+    gender = models.CharField(
+        max_length=10,
+        choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')],
+        blank=True
+    )
+    phone = models.CharField(max_length=15, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)  # 👈 Add this line
+
+    def __str__(self):
+        return self.user.username
 
 # Mood categories
 MOOD_CATEGORIES = [
