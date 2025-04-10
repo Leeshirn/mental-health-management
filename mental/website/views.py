@@ -3,11 +3,12 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404 
 from django.contrib.auth import authenticate,login, logout 
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm, PatientProfileForm
-from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional, PatientProfile
+from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm, PatientProfileForm, AvailabilityForm
+from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional, PatientProfile, Appointment, Availability
 from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
@@ -370,3 +371,68 @@ def profile_preview(request):
         'approaches': professional.get_approaches_list(),
     }
     return render(request, 'profiles/professional_profile_preview.html', context)
+
+
+@login_required
+
+def calendar_view(request):
+    # Check if the user is a professional or patient
+    user_profile = UserProfile.objects.get(user=request.user)
+
+    if user_profile.role == 'professional':
+        # If the user is a professional, show all appointments involving the professional
+        appointments = Appointment.objects.filter(professional=request.user)
+    elif user_profile.role == 'patient':
+        # If the user is a patient, show only their appointments
+        appointments = Appointment.objects.filter(patient=request.user)
+    else:
+        appointments = []
+
+    return render(request, 'professionals/calendar.html', {'appointments': appointments,'user_profile': user_profile})
+
+
+
+@login_required
+def calendar_data(request):
+    if request.user.is_staff:
+        appointments = Appointment.objects.filter(professional=request.user, status='approved')
+    else:
+        appointments = Appointment.objects.filter(patient=request.user, status='approved')
+
+    data = []
+    for appt in appointments:
+        data.append({
+            'title': f"{appt.patient.username} with {appt.professional.username}",
+            'start': f"{appt.date}T{appt.time}",
+            'end': f"{appt.date}T{appt.time}",
+        })
+    return JsonResponse(data, safe=False)
+
+
+@csrf_exempt
+@login_required
+def create_from_calendar(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        date_str = data.get('date')
+        time_str = data.get('time')
+
+        # Automatically assign the first available professional (can be improved later)
+        professional = User.objects.filter(is_staff=True).first()
+        if not professional:
+            return JsonResponse({'message': 'No professional available.'}, status=400)
+
+        try:
+            appt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            appt_time = datetime.strptime(time_str, '%H:%M:%S').time()
+        except ValueError:
+            return JsonResponse({'message': 'Invalid date/time format.'}, status=400)
+
+        Appointment.objects.create(
+            patient=request.user,
+            professional=professional,
+            date=appt_date,
+            time=appt_time,
+            status='pending'
+        )
+        return JsonResponse({'message': 'Appointment requested successfully!'})

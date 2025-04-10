@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Calendar</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+</head>
+<body>
+    {% extends "base.html" %}
+    {% block content %}
+    <h2>📅 Appointment Calendar</h2>
+    <div id="calendar"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const userRole = "{{ user_role }}";  // Access the role passed from Django
+            const calendarEl = document.getElementById('calendar');
+            
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                selectable: true,
+                select: function (info) {
+                    // Logic for patient and professional
+                    if (userRole === 'patient') {
+                        const confirmed = confirm("Do you want to request an appointment at " + info.startStr + "?");
+                        if (confirmed) {
+                            fetch('/patient/create-appointment/', {  // Update URL for patient appointment creation
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: JSON.stringify({
+                                    date: info.startStr.split("T")[0],
+                                    time: info.startStr.split("T")[1]
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                alert(data.message);
+                                calendar.refetchEvents();
+                            });
+                        }
+                    } else if (userRole === 'professional') {
+                        alert("You're a professional, so you manage appointments differently.");
+                        // Add professional-specific logic here, e.g., viewing all appointments
+                    }
+                },
+                events: '/professional/calendar-data/',  // Fetch events depending on role
+                height: 'auto'
+            });
+
+            calendar.render();
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        });
+    </script>
+
+    <style>
+        #calendar {
+            max-width: 900px;
+            margin: 20px auto;
+        }
+    </style>
+
+    {% endblock %}
+</body>
+</html>

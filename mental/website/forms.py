@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
-from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional, PatientProfile
+from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional, PatientProfile, Availability
 from django.core.validators import MinValueValidator
 
 class SignUpForm(UserCreationForm):
@@ -161,3 +161,13 @@ class MentalHealthProfessionalForm(forms.ModelForm):
             professional.save()
         
         return professional
+    
+
+class AvailabilityForm(forms.ModelForm):
+    class Meta:
+        model = Availability
+        fields = ['day_of_week', 'start_time', 'end_time']
+        widgets = {
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }

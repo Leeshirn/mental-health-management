@@ -22,8 +22,6 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} ({self.role})"
 
-
-
 class PatientProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     birth_date = models.DateField(null=True, blank=True)
@@ -99,7 +97,6 @@ class MoodEntry(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.mood} ({self.date_logged.strftime('%Y-%m-%d %H:%M:%S')})"
 
-
 class JournalSettings(models.Model):
     FREQUENCY_CHOICES = [
         ('daily', 'Daily'),
@@ -157,7 +154,6 @@ def populate_prompts():
     ]
     for prompt_text in prompts:
         JournalPrompt.objects.get_or_create(text=prompt_text)
-
 
 class MentalHealthProfessional(models.Model):
     PROFESSION_CHOICES = [
@@ -236,3 +232,40 @@ class MentalHealthProfessional(models.Model):
     def get_approaches_list(self):
         return [dict(self.APPROACH_CHOICES).get(code, code) 
                 for code in self.therapeutic_approaches.split(',')]
+        
+
+class Appointment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments')
+    professional = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_professional')
+    date = models.DateField()
+    time = models.TimeField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.patient.username} with {self.professional.username} on {self.date} at {self.time}"
+
+
+class Availability(models.Model):
+    professional = models.ForeignKey(User, on_delete=models.CASCADE)
+    day_of_week = models.CharField(max_length=10, choices=[
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ])
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    def __str__(self):
+        return f"{self.professional.username} - {self.day_of_week} ({self.start_time} - {self.end_time})"
