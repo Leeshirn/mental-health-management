@@ -1,5 +1,6 @@
 from django.urls import path  
 from . import views
+from . import appointment_views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -19,12 +20,11 @@ urlpatterns = [
     path('journal/edit/<int:entry_id>/', views.edit_journal_entry, name='edit_journal_entry'),
     path('journal/delete/<int:entry_id>/', views.delete_journal_entry, name='delete_journal_entry'),
     path('journal/settings/', views.update_journal_settings, name='update_journal_settings'),
-    path('professional_profile/', views.professional_profile, name='professional_profile'),
-    path('profile_preview/', views.profile_preview, name='profile_preview'),
-    path('profile_view/', views.profile_view, name='profile_view'),
-    path('edit_profile_view/', views.edit_profile_view, name='edit_profile_view'),
-    path('profile_summary_view/', views.profile_summary_view, name='profile_summary_view'),
-    path('calendar/', views.calendar_view, name='calendar_view'),
-    path('calendar-data/', views.calendar_data, name='calendar_data'),
-    path('create-from-calendar/', views.create_from_calendar, name='create_from_calendar'),
+    path('professional_profile/', appointment_views.professional_profile, name='professional_profile'),
+    path('profile_preview/', appointment_views.profile_preview, name='profile_preview'),
+    path('edit_profile_view/', appointment_views.edit_profile_view, name='edit_profile_view'),
+    path('profile_summary_view/', appointment_views.profile_summary_view, name='profile_summary_view'),
+    path('calendar/', appointment_views.calendar_view, name='calendar_view'),
+    path('calendar-data/', appointment_views.calendar_data, name='calendar_data'),
+    path('create-from-calendar/', appointment_views.create_from_calendar, name='create_from_calendar'),
 ]

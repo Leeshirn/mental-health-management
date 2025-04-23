@@ -84,7 +84,7 @@ class JournalSettingsForm(forms.ModelForm):
 class PatientProfileForm(forms.ModelForm):
     class Meta:
         model = PatientProfile
-        fields = ['birth_date', 'gender', 'phone', 'profile_picture']
+        fields = [ 'age', 'gender', 'phone', 'email', 'bio', 'profile_picture']
 
 
 class MentalHealthProfessionalForm(forms.ModelForm):

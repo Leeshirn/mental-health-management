@@ -1,9 +1,73 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block content %}
-  <h2>Edit Profile</h2>
-  <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Save</button>
-  </form>
+<div class="profile-edit-container">
+    <h1 class="edit-profile-title">Edit Your Profile</h1>
+    
+    <form method="POST" enctype="multipart/form-data" class="profile-edit-form">
+        {% csrf_token %}
+        
+        <!-- Profile Picture Field -->
+        <div class="form-field">
+            <label for="{{ form.profile_picture.id_for_label }}">Profile Picture:</label>
+            {{ form.profile_picture }}
+            {% if form.profile_picture.errors %}
+                <div class="error-message">{{ form.profile_picture.errors }}</div>
+            {% endif %}
+            {% if profile.profile_picture %}
+                <div class="current-image">
+                    <span>Current:</span>
+                    <img src="{{ profile.profile_picture.url }}" width="100">
+                </div>
+            {% endif %}
+        </div>
+        
+        
+        <!-- Age Field -->
+        <div class="form-field">
+            <label for="{{ form.age.id_for_label }}">Age:</label>
+            {{ form.age }}
+            {% if form.age.errors %}
+                <div class="error-message">{{ form.age.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Gender Field -->
+        <div class="form-field">
+            <label for="{{ form.gender.id_for_label }}">Gender:</label>
+            {{ form.gender }}
+            {% if form.gender.errors %}
+                <div class="error-message">{{ form.gender.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+          <label for="{{ form.email.id_for_label }}">Email:</label>
+          {{ form.email }}
+          {% if form.email.errors %}
+              <div class="error-message">{{ form.email.errors }}</div>
+          {% endif %}
+      </div>
+        
+        <!-- Bio Field -->
+        <div class="form-field">
+            <label for="{{ form.bio.id_for_label }}">Bio:</label>
+            {{ form.bio }}
+            {% if form.bio.errors %}
+                <div class="error-message">{{ form.bio.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn-save">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+            <a href="{% url 'profile_summary_view' %}" class="btn-cancel">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
 {% endblock %}

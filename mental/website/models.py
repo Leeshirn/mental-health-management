@@ -9,6 +9,7 @@ import random
 ROLE_CHOICES = [
     ('patient', 'Patient'),
     ('professional', 'Professional'),
+    
 ]
 
 class UserProfile(models.Model):
@@ -24,13 +25,15 @@ class UserProfile(models.Model):
 
 class PatientProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    birth_date = models.DateField(null=True, blank=True)
+    age = models.CharField(max_length=3, blank=True)
     gender = models.CharField(
         max_length=10,
         choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')],
         blank=True
     )
     phone = models.CharField(max_length=15, blank=True)
+    email = models.EmailField(blank=True)
+    bio = models.TextField(blank=True, null=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)  # 👈 Add this line
 
     def __str__(self):
