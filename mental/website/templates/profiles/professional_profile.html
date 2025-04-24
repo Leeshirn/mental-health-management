@@ -10,114 +10,154 @@
     </div>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        
-        <!-- Personal Information Section -->
-        <section class="form-section">
-            <h2 class="section-title">Personal Information</h2>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    {{ form.first_name.label_tag }}
-                    {{ form.first_name }}
-                    {{ form.first_name.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.last_name.label_tag }}
-                    {{ form.last_name }}
-                    {{ form.last_name.errors }}
-                </div>
-            </div>
-            
+    
+        <!-- User Information -->
+        <div class="form-row">
             <div class="form-group">
-                {{ form.profile_picture.label_tag }}
-                {{ form.profile_picture }}
-                {% if professional.profile_picture %}
-                <div class="current-image">
-                    <span>Current:</span>
-                    <img src="{{ professional.profile_picture.url }}" width="100">
-                </div>
-                {% endif %}
-                {{ form.profile_picture.errors }}
+                {{ form.first_name.label_tag }} {{ form.first_name }}
             </div>
-            
             <div class="form-group">
-                {{ form.bio.label_tag }}
-                {{ form.bio }}
-                <small class="form-text">Tell clients about your background and approach</small>
-                {{ form.bio.errors }}
+                {{ form.last_name.label_tag }} {{ form.last_name }}
             </div>
-        </section>
-
-        <!-- Professional Details Section -->
-        <section class="form-section">
-            <h2 class="section-title">Professional Details</h2>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    {{ form.profession.label_tag }}
-                    {{ form.profession }}
-                    {{ form.profession.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.years_of_experience.label_tag }}
-                    {{ form.years_of_experience }}
-                    {{ form.years_of_experience.errors }}
-                </div>
+            <div class="form-group">
+                {{ form.email.label_tag }} {{ form.email }}
             </div>
-            
+        </div>
+    
+        <!-- Professional Details -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.profession.label_tag }} {{ form.profession }}
+            </div>
+            <div class="form-group">
+                {{ form.license_number.label_tag }} {{ form.license_number }}
+            </div>
+            <div class="form-group">
+                {{ form.license_state.label_tag }} {{ form.license_state }}
+            </div>
+        </div>
+    
+        <!-- Therapeutic Approaches -->
+        <div class="form-row">
             <div class="form-group">
                 {{ form.therapeutic_approaches.label_tag }}
                 {{ form.therapeutic_approaches }}
-                {{ form.therapeutic_approaches.errors }}
             </div>
-            
-            <div class="form-group">
-                {{ form.areas_of_focus.label_tag }}
-                {{ form.areas_of_focus }}
-                {{ form.areas_of_focus.errors }}
-            </div>
-            
-            <div class="form-group">
-                {{ form.qualifications.label_tag }}
-                {{ form.qualifications }}
-                {{ form.qualifications.errors }}
-            </div>
-        </section>
-
-        <!-- Session Information Section -->
-        <section class="form-section">
-            <h2 class="section-title">Session Information</h2>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    {{ form.session_format.label_tag }}
-                    {{ form.session_format }}
-                    {{ form.session_format.errors }}
-                </div>
-                <div class="form-group">
-                    {{ form.session_fee.label_tag }}
-                    {{ form.session_fee }}
-                    {{ form.session_fee.errors }}
-                </div>
-            </div>
-            
-            <div class="form-group">
-                {{ form.availability.label_tag }}
-                {{ form.availability }}
-                {{ form.availability.errors }}
-            </div>
-        </section>
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-save">
-                <i class="fas fa-save"></i> Save Profile
-            </button>
-            <a href="{% url 'profile_preview' %}" class="btn btn-preview">
-                <i class="fas fa-eye"></i> Preview
-            </a>
         </div>
+    
+        <!-- Biography and Experience -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.bio.label_tag }} {{ form.bio }}
+            </div>
+            <div class="form-group">
+                {{ form.years_of_experience.label_tag }} {{ form.years_of_experience }}
+            </div>
+            <div class="form-group">
+                {{ form.qualifications.label_tag }} {{ form.qualifications }}
+            </div>
+            <div class="form-group">
+                {{ form.areas_of_focus.label_tag }} {{ form.areas_of_focus }}
+            </div>
+        </div>
+    
+        <!-- Practice Information -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.practice_name.label_tag }} {{ form.practice_name }}
+            </div>
+            <div class="form-group">
+                {{ form.website.label_tag }} {{ form.website }}
+            </div>
+            <div class="form-group">
+                {{ form.accepts_insurance.label_tag }} {{ form.accepts_insurance }}
+            </div>
+            <div class="form-group">
+                {{ form.sliding_scale.label_tag }} {{ form.sliding_scale }}
+            </div>
+        </div>
+    
+        <!-- Contact Details -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.phone.label_tag }} {{ form.phone }}
+            </div>
+            <div class="form-group">
+                {{ form.emergency_contact.label_tag }} {{ form.emergency_contact }}
+            </div>
+            <div class="form-group">
+                {{ form.address.label_tag }} {{ form.address }}
+            </div>
+            <div class="form-group">
+                {{ form.city.label_tag }} {{ form.city }}
+            </div>
+            <div class="form-group">
+                {{ form.state.label_tag }} {{ form.state }}
+            </div>
+            <div class="form-group">
+                {{ form.country.label_tag }} {{ form.country }}
+            </div>
+            <div class="form-group">
+                {{ form.postal_code.label_tag }} {{ form.postal_code }}
+            </div>
+        </div>
+    
+        <!-- Session Details -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.session_format.label_tag }} {{ form.session_format }}
+            </div>
+            <div class="form-group">
+                {{ form.session_length.label_tag }} {{ form.session_length }}
+            </div>
+            <div class="form-group">
+                {{ form.session_fee.label_tag }} {{ form.session_fee }}
+            </div>
+        </div>
+    
+        <!-- Availability and Crisis Protocol -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.availability.label_tag }} {{ form.availability }}
+            </div>
+            <div class="form-group">
+                {{ form.crisis_protocol.label_tag }} {{ form.crisis_protocol }}
+            </div>
+        </div>
+    
+        <!-- Uploads -->
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.profile_picture.label_tag }} {{ form.profile_picture }}
+            </div>
+            <div class="form-group">
+                {{ form.license_verification.label_tag }} {{ form.license_verification }}
+            </div>
+        </div>
+    
+        <!-- Submit Button -->
+        <div class="form-row">
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Save Profile</button>
+            </div>
+        </div>
+    
+        <!-- Error Messages -->
+        {% if form.errors %}
+        <div class="form-errors">
+            <p><strong>Please correct the following errors:</strong></p>
+            <ul>
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
     </form>
+    
 </div>
 {% endblock %}

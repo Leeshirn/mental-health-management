@@ -42,36 +42,29 @@ def professional_profile(request):
         professional = MentalHealthProfessional.objects.get(user=request.user)
     except MentalHealthProfessional.DoesNotExist:
         professional = MentalHealthProfessional(user=request.user)
-    
+
     if request.method == 'POST':
         form = MentalHealthProfessionalForm(request.POST, request.FILES, instance=professional)
         if form.is_valid():
-            # Save the form data regardless of completion
-            profile = form.save(commit=False)
-            profile.user = request.user
-            profile.save()
-            form.save_m2m()  # For many-to-many fields
+            professional = form.save(commit=False)
             
-            # Update completion status (but don't block saving)
-            completed_fields = sum(
-                1 for field in MentalHealthProfessionalForm.required_fields 
-                if getattr(profile, field) not in [None, '', 0]
-            )
-            profile.profile_complete = (completed_fields == len(MentalHealthProfessionalForm.required_fields))
-            profile.save()
+            # Ensure the user is set before calling form.save()
+            if not professional.user_id:
+                professional.user = request.user
+
+            form.save()  # This will save both the user and the professional profile
             
             messages.success(request, "Changes saved successfully!")
-            return redirect('profile_preview')  # Stay on same page
-            
+            return redirect('profile_preview')
+        else:
+            print("Form errors:", form.errors)  # Debug output
     else:
         form = MentalHealthProfessionalForm(instance=professional)
+
+    return render(request, 'profiles/professional_profile.html', {'form': form})
+
     
-    context = {
-        'form': form,
-        'professional': professional,
-        'profile_complete': professional.profile_complete,
-    }
-    return render(request, 'profiles/professional_profile.html', context)
+
 
 @login_required
 def profile_preview(request):
