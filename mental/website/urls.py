@@ -27,4 +27,7 @@ urlpatterns = [
     path('calendar/', appointment_views.calendar_view, name='calendar_view'),
     path('calendar-data/', appointment_views.calendar_data, name='calendar_data'),
     path('create-from-calendar/', appointment_views.create_from_calendar, name='create_from_calendar'),
+    path('manage-availability/', appointment_views.manage_availability, name='manage_availability'),
+    path('save-availability/', appointment_views.save_availability, name='save_availability'),
+
 ]

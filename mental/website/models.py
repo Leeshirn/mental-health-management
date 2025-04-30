@@ -255,7 +255,6 @@ class Appointment(models.Model):
     def __str__(self):
         return f"{self.patient.username} with {self.professional.username} on {self.date} at {self.time}"
 
-
 class Availability(models.Model):
     professional = models.ForeignKey(User, on_delete=models.CASCADE)
     day_of_week = models.CharField(max_length=10, choices=[

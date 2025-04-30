@@ -1,3 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,76 +9,153 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 </head>
 <body>
-    {% extends "base.html" %}
-    {% block content %}
-    <h2>📅 Appointment Calendar</h2>
-    <div id="calendar"></div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const userRole = "{{ user_role }}";  // Access the role passed from Django
-            const calendarEl = document.getElementById('calendar');
-            
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                selectable: true,
-                select: function (info) {
-                    // Logic for patient and professional
-                    if (userRole === 'patient') {
-                        const confirmed = confirm("Do you want to request an appointment at " + info.startStr + "?");
-                        if (confirmed) {
-                            fetch('/patient/create-appointment/', {  // Update URL for patient appointment creation
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': getCookie('csrftoken')
-                                },
-                                body: JSON.stringify({
-                                    date: info.startStr.split("T")[0],
-                                    time: info.startStr.split("T")[1]
-                                })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                alert(data.message);
-                                calendar.refetchEvents();
-                            });
-                        }
-                    } else if (userRole === 'professional') {
-                        alert("You're a professional, so you manage appointments differently.");
-                        // Add professional-specific logic here, e.g., viewing all appointments
-                    }
-                },
-                events: '/professional/calendar-data/',  // Fetch events depending on role
-                height: 'auto'
-            });
+<h2>📅 Appointment Calendar</h2>
 
-            calendar.render();
+{% if user_profile.role == 'patient' %}
+<label for="professionalSelect">Choose a Professional:</label>
+<select id="professionalSelect">
+    {% for pro in professionals %}
+        <option value="{{ pro.id }}">{{ pro.username }}</option>
+    {% endfor %}
+</select>
+{% endif %}
 
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
+<div id="calendar"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const userRole = "{{ user_profile.role }}";
+    const calendarEl = document.getElementById('calendar');
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay'
+        },
+        selectable: userRole === 'patient',
+        editable: false,
+        eventClick: function(info) {
+            const event = info.event;
+
+            if (userRole === 'professional') {
+                const isPending = event.extendedProps.status === 'pending';
+                if (isPending) {
+                    const approve = confirm(`Appointment with ${event.title}\nApprove this appointment?`);
+                    if (approve) {
+                        updateAppointmentStatus(event.id, 'approved');
+                    } else {
+                        const reject = confirm("Reject this appointment?");
+                        if (reject) {
+                            updateAppointmentStatus(event.id, 'rejected');
                         }
                     }
+                } else {
+                    alert("This appointment has already been " + event.extendedProps.status + ".");
                 }
-                return cookieValue;
             }
+        },
+        select: function(info) {
+            if (userRole === 'patient') {
+                const professionalId = document.getElementById("professionalSelect").value;
+                const confirmed = confirm("Do you want to request an appointment at " + info.startStr + "?");
+
+                if (confirmed) {
+                    fetch('/create-from-calendar/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            date: info.startStr.split("T")[0],
+                            time: info.startStr.split("T")[1].split("+")[0],  // clean time
+                            professional_id: professionalId
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message);
+                        calendar.refetchEvents();
+                    });
+                }
+            }
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            let professionalId = "";
+            if (userRole === 'patient') {
+                const select = document.getElementById("professionalSelect");
+                professionalId = select ? select.value : "";
+            }
+
+            let url = "{% url 'calendar_data' %}";
+            if (professionalId) {
+                url += "?professional_id=" + professionalId;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(events => successCallback(events))
+                .catch(error => failureCallback(error));
+        },
+        height: 'auto'
+    });
+
+    calendar.render();
+
+    // Refetch when patient selects a different professional
+    if (userRole === 'patient') {
+        const professionalSelect = document.getElementById("professionalSelect");
+        professionalSelect.addEventListener('change', function () {
+            calendar.refetchEvents();
         });
-    </script>
+    }
 
-    <style>
-        #calendar {
-            max-width: 900px;
-            margin: 20px auto;
+    function updateAppointmentStatus(appointmentId, status) {
+        fetch('/professional/update-appointment-status/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                appointment_id: appointmentId,
+                status: status
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            calendar.refetchEvents();
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-    </style>
+        return cookieValue;
+    }
+});
+</script>
 
-    {% endblock %}
+<style>
+    #calendar {
+        max-width: 900px;
+        margin: 20px auto;
+    }
+</style>
+
 </body>
 </html>
+{% endblock %}

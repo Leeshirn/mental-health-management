@@ -14,3 +14,10 @@ class UserProfileAdmin(admin.ModelAdmin):
     verify_professionals.short_description = "Verify selected professionals"
 
 admin.site.register(UserProfile, UserProfileAdmin)
+
+# admin.py
+
+from django.contrib import admin
+from .models import Availability
+
+admin.site.register(Availability)
