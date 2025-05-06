@@ -13,6 +13,8 @@ from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
 from django.utils import timezone
+from django.forms.models import model_to_dict
+from django.utils.dateparse import parse_datetime
 
 @login_required
 def profile_summary_view(request):
@@ -77,6 +79,8 @@ def profile_preview(request):
     }
     return render(request, 'profiles/professional_profile_preview.html', context)
 
+
+
 @login_required
 def calendar_view(request):
     user_profile = UserProfile.objects.get(user=request.user)
@@ -106,25 +110,18 @@ def create_from_calendar(request):
         time_str = data.get('time')
         professional_id = data.get('professional_id')
 
-        print(f"Received date: {date_str}, time: {time_str}")
-        import re
-        time_str = re.split(r'[+-]', time_str)[0]  # strips timezone safely
-
-        
         try:
             appt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             appt_time = datetime.strptime(time_str, '%H:%M:%S').time()
         except ValueError as e:
-            return JsonResponse({'message': 'Invalid date/time format. Error: {str(e)}'}, status=400)
+            return JsonResponse({'message': f'Invalid date/time format. Error: {str(e)}'}, status=400)
 
-        # Validate selected professional
         try:
-            professional = User.objects.get(id=professional_id, userprofile__role='professional',
-            userprofile__is_verified=True)
+            professional = User.objects.get(id=professional_id, userprofile__role='professional', userprofile__is_verified=True)
         except User.DoesNotExist:
             return JsonResponse({'message': 'Selected professional not found.'}, status=400)
 
-        # Check if time falls within the professional's availability
+        # Check availability
         day_of_week = appt_date.strftime('%A')
         available_slots = Availability.objects.filter(
             professional=professional,
@@ -134,7 +131,18 @@ def create_from_calendar(request):
         )
 
         if not available_slots.exists():
-            return JsonResponse({'message': 'Selected time is not within the professional’s availability.'}, status=400)
+            return JsonResponse({'message': "Selected time is not within the professional's availability."}, status=400)
+
+        # Check for existing appointment at this time
+        existing_appt = Appointment.objects.filter(
+            professional=professional,
+            date=appt_date,
+            time=appt_time,
+            status__in=['pending', 'approved']
+        ).exists()
+
+        if existing_appt:
+            return JsonResponse({'message': 'This time slot is already booked.'}, status=400)
 
         # Create the appointment
         Appointment.objects.create(
@@ -148,71 +156,182 @@ def create_from_calendar(request):
 
 @login_required
 def calendar_data(request):
-    if request.user.is_staff:
-        appointments = Appointment.objects.filter(professional=request.user, status='approved')
-    else:
-        appointments = Appointment.objects.filter(patient=request.user, status='approved')
+    user = request.user
+    user_profile = UserProfile.objects.get(user=user)
+    professional_id = request.GET.get('professional_id')
 
-    availability = Availability.objects.filter(professional=request.user)
-    availability_data = []
-    for slot in availability:
-        availability_data.append({
+    events = []
+
+    if user_profile.role == 'patient' and professional_id:
+        try:
+            professional = User.objects.get(id=professional_id)
+        except User.DoesNotExist:
+            return JsonResponse([], safe=False)
+
+        appointments = Appointment.objects.filter(professional=professional, patient=user)
+        availabilities = Availability.objects.filter(professional=professional)
+
+    elif user_profile.role == 'professional':
+        appointments = Appointment.objects.filter(professional=user)
+        availabilities = Availability.objects.filter(professional=user)
+
+    else:
+        appointments = []
+        availabilities = []
+
+    # Add availability blocks
+    for slot in availabilities:
+        weekdays = {
+            'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+            'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0
+        }
+        day_index = weekdays.get(slot.day_of_week, None)
+        if day_index is None:
+            continue
+
+        events.append({
             'title': 'Available',
-            'start': f"{slot.day_of_week}T{slot.start_time}",
-            'end': f"{slot.day_of_week}T{slot.end_time}",
-            'color': 'green',  # Optional: color for availability
+            'daysOfWeek': [day_index],
+            'startTime': str(slot.start_time),
+            'endTime': str(slot.end_time),
+            'display': 'background',
+            'color': '#d4f5d4',
         })
-    
-    data = []
+
+    # Add appointments
     for appt in appointments:
-        data.append({
-            'title': f"{appt.patient.username} with {appt.professional.username}",
+        event_color = {
+            'pending': '#f0ad4e',
+            'approved': '#5cb85c',
+            'rejected': '#d9534f',
+            'completed': '#5bc0de',
+            'cancelled': '#777'
+        }.get(appt.status, '#3a87ad')
+
+        events.append({
+            'id': appt.id,
+            'title': f"{appt.patient.username if user_profile.role == 'professional' else appt.professional.username}",
             'start': f"{appt.date}T{appt.time}",
             'end': f"{appt.date}T{appt.time}",
+            'status': appt.status,
+            'color': event_color,
+            'notes': appt.notes,
+            'editable': user_profile.role == 'professional' and appt.status == 'approved'
         })
-    return JsonResponse(data, safe=False)
 
-# views.py
+    return JsonResponse(events, safe=False)
 
-
-from .forms import AvailabilityForm 
-
+@csrf_exempt
 @login_required
-def manage_availability(request):
-    if request.user.userprofile.role != 'professional':
-        return redirect('home')  # Redirect to home if user is not a professional
-
-    availability_slots = Availability.objects.filter(professional=request.user)
-
+def update_appointment_status(request):
     if request.method == "POST":
-        form = AvailabilityForm(request.POST)
-        if form.is_valid():
-            availability = form.save(commit=False)
-            availability.professional = request.user
-            availability.save()
-            return redirect('manage_availability')
-    else:
-        form = AvailabilityForm()
+        data = json.loads(request.body)
+        appointment_id = data.get('appointment_id')
+        new_status = data.get('status')
 
-    return render(request, 'professionals/manage_availability.html', {
-        'form': form,
-        'availability_slots': availability_slots
-    })
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+            
+            # Check permissions
+            user_profile = UserProfile.objects.get(user=request.user)
+            if user_profile.role == 'patient' and appointment.patient != request.user:
+                return JsonResponse({"error": "You can only modify your own appointments."}, status=403)
+            if user_profile.role == 'professional' and appointment.professional != request.user:
+                return JsonResponse({"error": "You can only modify appointments with you."}, status=403)
 
+            # Update status
+            appointment.status = new_status
+            appointment.save()
+            return JsonResponse({"message": f"Appointment status updated to {new_status}."})
+        except Appointment.DoesNotExist:
+            return JsonResponse({"error": "Appointment not found."}, status=404)
+
+    return JsonResponse({"error": "Invalid request."}, status=400)
+
+@csrf_exempt
+@login_required
+def reschedule_appointment(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        appointment_id = data.get('appointment_id')
+        new_date = data.get('new_date')
+        new_time = data.get('new_time')
+        reason = data.get('reason', '')
+        is_request = data.get('is_request', 'false') == 'true'
+
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+            
+            # Check permissions
+            user_profile = UserProfile.objects.get(user=request.user)
+            if user_profile.role == 'patient' and appointment.patient != request.user:
+                return JsonResponse({"error": "You can only reschedule your own appointments."}, status=403)
+            if user_profile.role == 'professional' and appointment.professional != request.user:
+                return JsonResponse({"error": "You can only reschedule appointments with you."}, status=403)
+
+            # Parse new datetime
+            try:
+                new_datetime = datetime.strptime(f"{new_date} {new_time}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                return JsonResponse({"error": "Invalid date/time format."}, status=400)
+
+            # For patients, create a reschedule request
+            if is_request and user_profile.role == 'patient':
+                appointment.reschedule_request_date = new_datetime.date()
+                appointment.reschedule_request_time = new_datetime.time()
+                appointment.reschedule_reason = reason
+                appointment.reschedule_status = 'pending'
+                appointment.save()
+                return JsonResponse({"message": "Reschedule request submitted. Waiting for professional approval."})
+            
+            # For professionals, reschedule immediately
+            appointment.date = new_datetime.date()
+            appointment.time = new_datetime.time()
+            if reason:
+                appointment.notes = f"Rescheduled: {reason}"
+            appointment.save()
+            return JsonResponse({"message": "Appointment rescheduled successfully."})
+        except Appointment.DoesNotExist:
+            return JsonResponse({"error": "Appointment not found."}, status=404)
+
+    return JsonResponse({"error": "Invalid request."}, status=400)
 
 @csrf_exempt
 @login_required
 def save_availability(request):
-    if request.method == "POST" and request.user.profile.role == 'professional':
-        data = json.loads(request.body)
-        start = parse_datetime(data.get("start"))
-        end = parse_datetime(data.get("end"))
-
-        Availability.objects.create(
-            professional=request.user,
-            date=start.date(),
-            start_time=start.time(),
-            end_time=end.time()
-        )
-        return JsonResponse({"message": "Availability saved successfully."})
-    return JsonResponse({"error": "Unauthorized or invalid request."}, status=400)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            day_of_week = data.get('day_of_week')
+            start_time_str = data.get('start_time')
+            end_time_str = data.get('end_time')
+            
+            # Validate required fields
+            if not all([day_of_week, start_time_str, end_time_str]):
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+            
+            # Parse times
+            try:
+                start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
+                end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+            except ValueError as e:
+                return JsonResponse({'error': f'Invalid time format: {str(e)}'}, status=400)
+            
+            # Check if end time is after start time
+            if end_time <= start_time:
+                return JsonResponse({'error': 'End time must be after start time'}, status=400)
+            
+            # Create availability slot
+            Availability.objects.create(
+                professional=request.user,
+                day_of_week=day_of_week,
+                start_time=start_time,
+                end_time=end_time
+            )
+            
+            return JsonResponse({'status': 'success'})
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

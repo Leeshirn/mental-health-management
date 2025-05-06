@@ -1,15 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Calendar</title>
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-</head>
-<body>
-
 <h2>📅 Appointment Calendar</h2>
 
 {% if user_profile.role == 'patient' %}
@@ -21,12 +11,89 @@
 </select>
 {% endif %}
 
+
+
+
 <div id="calendar"></div>
 
+<!-- Modal for appointment details -->
+<div id="appointmentModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<style>
+    #calendar {
+        max-width: 900px;
+        margin: 20px auto;
+        height: 800px;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 50%;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .close:hover {
+        color: black;
+    }
+    .fc-event-pending { background-color: #f0ad4e; }
+    .fc-event-approved { background-color: #5cb85c; }
+    .fc-event-rejected { background-color: #d9534f; }
+    .fc-event-completed { background-color: #5bc0de; }
+    .fc-event-cancelled { background-color: #777; }
+    .availability-form {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+    .form-group {
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const userRole = "{{ user_profile.role }}";
     const calendarEl = document.getElementById('calendar');
+    const modal = document.getElementById('appointmentModal');
+    const modalContent = document.getElementById('modalContent');
+    const closeBtn = document.querySelector('.close');
+
+    if (!calendarEl) {
+        console.error("Calendar element not found!");
+        return;
+    }
+
+    // Modal handlers
+    closeBtn.onclick = () => modal.style.display = 'none';
+    window.onclick = (event) => {
+        if (event.target == modal) modal.style.display = 'none';
+    };
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
@@ -35,35 +102,28 @@ document.addEventListener('DOMContentLoaded', function () {
             center: 'title',
             right: 'timeGridWeek,timeGridDay'
         },
-        selectable: userRole === 'patient',
-        editable: false,
-        eventClick: function(info) {
-            const event = info.event;
+        selectable: true,
+        editable: userRole === 'professional',
+        selectMirror: true,
+        eventDurationEditable: userRole === 'professional',
+        eventResizableFromStart: userRole === 'professional',
+        nowIndicator: true,
 
-            if (userRole === 'professional') {
-                const isPending = event.extendedProps.status === 'pending';
-                if (isPending) {
-                    const approve = confirm(`Appointment with ${event.title}\nApprove this appointment?`);
-                    if (approve) {
-                        updateAppointmentStatus(event.id, 'approved');
-                    } else {
-                        const reject = confirm("Reject this appointment?");
-                        if (reject) {
-                            updateAppointmentStatus(event.id, 'rejected');
-                        }
-                    }
-                } else {
-                    alert("This appointment has already been " + event.extendedProps.status + ".");
-                }
-            }
-        },
         select: function(info) {
+            const now = new Date();
+            if (info.start < now) {
+                alert("Cannot book appointments in the past");
+                calendar.unselect();
+                return;
+            }
+
             if (userRole === 'patient') {
                 const professionalId = document.getElementById("professionalSelect").value;
-                const confirmed = confirm("Do you want to request an appointment at " + info.startStr + "?");
-
-                if (confirmed) {
-                    fetch('/create-from-calendar/', {
+                const professionalName = document.getElementById("professionalSelect")
+                    .options[document.getElementById("professionalSelect").selectedIndex].text;
+                
+                if (confirm(`Request appointment with ${professionalName} on ${info.startStr}?`)) {
+                    fetch('{% url "create_from_calendar" %}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -71,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         },
                         body: JSON.stringify({
                             date: info.startStr.split("T")[0],
-                            time: info.startStr.split("T")[1].split("+")[0],  // clean time
+                            time: info.startStr.split("T")[1].split("+")[0],
                             professional_id: professionalId
                         })
                     })
@@ -81,81 +141,167 @@ document.addEventListener('DOMContentLoaded', function () {
                         calendar.refetchEvents();
                     });
                 }
+            } else if (userRole === 'professional') {
+                if (confirm(`Set availability from ${info.startStr} to ${info.endStr}?`)) {
+                    fetch('{% url "save_availability" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            day_of_week: info.start.toLocaleString('en-US', { weekday: 'long' }),
+                            start_time: info.start.toLocaleTimeString('en-US', {hour12: false}),
+                            end_time: info.end.toLocaleTimeString('en-US', {hour12: false})
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message || data.error);
+                        calendar.refetchEvents();
+                    });
+                }
             }
+            calendar.unselect();
         },
+
+        eventClick: function(info) {
+            const event = info.event;
+            modalContent.innerHTML = `
+                <h3>Appointment Details</h3>
+                <p><strong>With:</strong> ${event.title}</p>
+                <p><strong>Date:</strong> ${event.start.toLocaleString()}</p>
+                <p><strong>Status:</strong> ${event.extendedProps.status}</p>
+                ${event.extendedProps.notes ? `<p><strong>Notes:</strong> ${event.extendedProps.notes}</p>` : ''}
+                <div id="actionButtons"></div>
+            `;
+            
+            const actionButtons = document.getElementById('actionButtons');
+            if (userRole === 'professional') {
+                if (event.extendedProps.status === 'pending') {
+                    actionButtons.innerHTML = `
+                        <button onclick="handleAppointmentAction('${event.id}', 'approve')" class="btn btn-success">Approve</button>
+                        <button onclick="handleAppointmentAction('${event.id}', 'reject')" class="btn btn-danger">Reject</button>
+                    `;
+                } else if (event.extendedProps.status === 'approved') {
+                    actionButtons.innerHTML = `
+                        <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
+                    `;
+                }
+            } else if (userRole === 'patient') {
+                if (event.extendedProps.status === 'pending') {
+                    actionButtons.innerHTML = `
+                        <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
+                    `;
+                } else if (event.extendedProps.status === 'approved') {
+                    actionButtons.innerHTML = `
+                        <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
+                    `;
+                }
+            }
+            modal.style.display = 'block';
+        },
+
         events: function(fetchInfo, successCallback, failureCallback) {
-            let professionalId = "";
+            let url = '{% url "calendar_data" %}';
             if (userRole === 'patient') {
                 const select = document.getElementById("professionalSelect");
-                professionalId = select ? select.value : "";
-            }
-
-            let url = "{% url 'calendar_data' %}";
-            if (professionalId) {
-                url += "?professional_id=" + professionalId;
+                if (select && select.value) {
+                    url += `?professional_id=${select.value}`;
+                }
             }
 
             fetch(url)
                 .then(response => response.json())
-                .then(events => successCallback(events))
+                .then(events => {
+                    const processedEvents = events.map(event => {
+                        if (event.status) {
+                            event.className = `fc-event-${event.status}`;
+                        }
+                        return event;
+                    });
+                    successCallback(processedEvents);
+                })
                 .catch(error => failureCallback(error));
-        },
-        height: 'auto'
+        }
     });
 
     calendar.render();
 
-    // Refetch when patient selects a different professional
     if (userRole === 'patient') {
-        const professionalSelect = document.getElementById("professionalSelect");
-        professionalSelect.addEventListener('change', function () {
+        document.getElementById("professionalSelect").addEventListener('change', function() {
             calendar.refetchEvents();
         });
     }
 
-    function updateAppointmentStatus(appointmentId, status) {
-        fetch('/professional/update-appointment-status/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                appointment_id: appointmentId,
-                status: status
+    if (userRole === 'professional') {
+        document.getElementById("availabilityForm").addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('{% url "save_availability" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    day_of_week: formData.get('day_of_week'),
+                    start_time: formData.get('start_time'),
+                    end_time: formData.get('end_time')
+                })
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.message);
-            calendar.refetchEvents();
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || data.error);
+                calendar.refetchEvents();
+                this.reset();
+            });
         });
-    }
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
     }
 });
-</script>
 
-<style>
-    #calendar {
-        max-width: 900px;
-        margin: 20px auto;
+window.handleAppointmentAction = function(appointmentId, action) {
+    const statusMap = {
+        'approve': 'approved',
+        'reject': 'rejected',
+        'complete': 'completed',
+        'cancel': 'cancelled'
+    };
+    
+    fetch('{% url "update_appointment_status" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            appointment_id: appointmentId,
+            status: statusMap[action]
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message || data.error);
+        document.getElementById('appointmentModal').style.display = 'none';
+        const calendarEl = document.getElementById('calendar');
+        if (calendarEl && calendarEl.__fullCalendar) {
+            calendarEl.__fullCalendar.refetchEvents();
+        }
+    });
+};
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
     }
-</style>
-
-</body>
-</html>
+    return cookieValue;
+}
+</script>
 {% endblock %}

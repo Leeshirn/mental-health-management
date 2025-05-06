@@ -237,8 +237,18 @@ class MentalHealthProfessional(models.Model):
                 for code in self.therapeutic_approaches.split(',')]
         
 
+
+
 class Appointment(models.Model):
     STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    RESCHEDULE_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
@@ -251,13 +261,18 @@ class Appointment(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Reschedule fields
+    reschedule_request_date = models.DateField(null=True, blank=True)
+    reschedule_request_time = models.TimeField(null=True, blank=True)
+    reschedule_reason = models.TextField(blank=True)
+    reschedule_status = models.CharField(max_length=10, choices=RESCHEDULE_STATUS_CHOICES, blank=True)
 
     def __str__(self):
         return f"{self.patient.username} with {self.professional.username} on {self.date} at {self.time}"
 
 class Availability(models.Model):
-    professional = models.ForeignKey(User, on_delete=models.CASCADE)
-    day_of_week = models.CharField(max_length=10, choices=[
+    DAYS_OF_WEEK = [
         ('Monday', 'Monday'),
         ('Tuesday', 'Tuesday'),
         ('Wednesday', 'Wednesday'),
@@ -265,7 +280,10 @@ class Availability(models.Model):
         ('Friday', 'Friday'),
         ('Saturday', 'Saturday'),
         ('Sunday', 'Sunday'),
-    ])
+    ]
+
+    professional = models.ForeignKey(User, on_delete=models.CASCADE)
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     start_time = models.TimeField()
     end_time = models.TimeField()
 
