@@ -79,8 +79,6 @@ def profile_preview(request):
     }
     return render(request, 'profiles/professional_profile_preview.html', context)
 
-
-
 @login_required
 def calendar_view(request):
     user_profile = UserProfile.objects.get(user=request.user)

@@ -236,9 +236,6 @@ class MentalHealthProfessional(models.Model):
         return [dict(self.APPROACH_CHOICES).get(code, code) 
                 for code in self.therapeutic_approaches.split(',')]
         
-
-
-
 class Appointment(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),

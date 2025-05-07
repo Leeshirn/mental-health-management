@@ -11,9 +11,6 @@
 </select>
 {% endif %}
 
-
-
-
 <div id="calendar"></div>
 
 <!-- Modal for appointment details -->
@@ -24,54 +21,7 @@
     </div>
 </div>
 
-<style>
-    #calendar {
-        max-width: 900px;
-        margin: 20px auto;
-        height: 800px;
-    }
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-        background-color: #fefefe;
-        margin: 15% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 50%;
-    }
-    .close {
-        color: #aaa;
-        float: right;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .close:hover {
-        color: black;
-    }
-    .fc-event-pending { background-color: #f0ad4e; }
-    .fc-event-approved { background-color: #5cb85c; }
-    .fc-event-rejected { background-color: #d9534f; }
-    .fc-event-completed { background-color: #5bc0de; }
-    .fc-event-cancelled { background-color: #777; }
-    .availability-form {
-        margin-bottom: 20px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 5px;
-    }
-    .form-group {
-        margin-bottom: 10px;
-    }
-</style>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -167,35 +117,80 @@ document.addEventListener('DOMContentLoaded', function() {
 
         eventClick: function(info) {
             const event = info.event;
+            const isPatient = userRole === 'patient';
+            const isProfessional = userRole === 'professional';
+            const canReschedule = ['pending', 'approved'].includes(event.extendedProps.status);
+            
             modalContent.innerHTML = `
                 <h3>Appointment Details</h3>
                 <p><strong>With:</strong> ${event.title}</p>
                 <p><strong>Date:</strong> ${event.start.toLocaleString()}</p>
                 <p><strong>Status:</strong> ${event.extendedProps.status}</p>
                 ${event.extendedProps.notes ? `<p><strong>Notes:</strong> ${event.extendedProps.notes}</p>` : ''}
+                
+                ${event.extendedProps.reschedule_status ? `
+                <div class="reschedule-info">
+                    <p><strong>Reschedule Status:</strong> ${event.extendedProps.reschedule_status}</p>
+                    ${event.extendedProps.reschedule_request_date ? `<p><strong>Requested New Time:</strong> ${new Date(event.extendedProps.reschedule_request_date + 'T' + event.extendedProps.reschedule_request_time).toLocaleString()}</p>` : ''}
+                    ${event.extendedProps.reschedule_reason ? `<p><strong>Reschedule Reason:</strong> ${event.extendedProps.reschedule_reason}</p>` : ''}
+                </div>
+                ` : ''}
+                
+                ${canReschedule ? `
+                <div class="reschedule-section">
+                    <h4>Reschedule Appointment</h4>
+                    <div class="form-group">
+                        <label for="rescheduleDate">New Date:</label>
+                        <input type="date" id="rescheduleDate" value="${event.start.toISOString().split('T')[0]}">
+                    </div>
+                    <div class="form-group">
+                        <label for="rescheduleTime">New Time:</label>
+                        <input type="time" id="rescheduleTime" value="${event.start.toTimeString().substring(0, 5)}">
+                    </div>
+                    ${isPatient ? `
+                    <div class="form-group">
+                        <label for="rescheduleReason">Reason:</label>
+                        <textarea id="rescheduleReason" placeholder="Optional reason for rescheduling"></textarea>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+                
                 <div id="actionButtons"></div>
             `;
             
+            
             const actionButtons = document.getElementById('actionButtons');
-            if (userRole === 'professional') {
+            if (isProfessional) {
                 if (event.extendedProps.status === 'pending') {
                     actionButtons.innerHTML = `
                         <button onclick="handleAppointmentAction('${event.id}', 'approve')" class="btn btn-success">Approve</button>
                         <button onclick="handleAppointmentAction('${event.id}', 'reject')" class="btn btn-danger">Reject</button>
+                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
                     `;
                 } else if (event.extendedProps.status === 'approved') {
                     actionButtons.innerHTML = `
                         <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
+                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
                     `;
                 }
-            } else if (userRole === 'patient') {
+                
+                if (event.extendedProps.reschedule_status === 'pending') {
+                    actionButtons.innerHTML += `
+                        <button onclick="handleRescheduleAction('${event.id}', 'approve')" class="btn btn-success">Approve Reschedule</button>
+                        <button onclick="handleRescheduleAction('${event.id}', 'reject')" class="btn btn-danger">Reject Reschedule</button>
+                    `;
+                }
+            } else if (isPatient) {
                 if (event.extendedProps.status === 'pending') {
                     actionButtons.innerHTML = `
                         <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
+                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', true)" class="btn btn-warning">Request Reschedule</button>` : ''}
                     `;
                 } else if (event.extendedProps.status === 'approved') {
                     actionButtons.innerHTML = `
-                        <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
+                        <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
+                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', true)" class="btn btn-warning">Request Reschedule</button>` : ''}
                     `;
                 }
             }
@@ -233,32 +228,9 @@ document.addEventListener('DOMContentLoaded', function() {
             calendar.refetchEvents();
         });
     }
-
-    if (userRole === 'professional') {
-        document.getElementById("availabilityForm").addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            fetch('{% url "save_availability" %}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    day_of_week: formData.get('day_of_week'),
-                    start_time: formData.get('start_time'),
-                    end_time: formData.get('end_time')
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert(data.message || data.error);
-                calendar.refetchEvents();
-                this.reset();
-            });
-        });
-    }
 });
 
+// Handle appointment status changes (approve, reject, complete, cancel)
 window.handleAppointmentAction = function(appointmentId, action) {
     const statusMap = {
         'approve': 'approved',
@@ -286,6 +258,82 @@ window.handleAppointmentAction = function(appointmentId, action) {
         if (calendarEl && calendarEl.__fullCalendar) {
             calendarEl.__fullCalendar.refetchEvents();
         }
+    });
+};
+
+// Handle rescheduling appointments
+window.handleReschedule = function(appointmentId, isRequest) {
+    const newDate = document.getElementById('rescheduleDate').value;
+    const newTime = document.getElementById('rescheduleTime').value;
+    const reason = document.getElementById('rescheduleReason') ? document.getElementById('rescheduleReason').value : '';
+    
+    if (!newDate || !newTime) {
+        alert('Please select both date and time');
+        return;
+    }
+    
+    fetch('{% url "reschedule_appointment" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            appointment_id: appointmentId,
+            new_date: newDate,
+            new_time: newTime,
+            reason: reason,
+            is_request: isRequest
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(data.message);
+            document.getElementById('appointmentModal').style.display = 'none';
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl && calendarEl.__fullCalendar) {
+                calendarEl.__fullCalendar.refetchEvents();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to reschedule appointment');
+    });
+};
+
+// Handle professional approval/rejection of reschedule requests
+window.handleRescheduleAction = function(appointmentId, action) {
+    fetch('{% url "reschedule_appointment" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            appointment_id: appointmentId,
+            reschedule_action: action
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(data.message);
+            document.getElementById('appointmentModal').style.display = 'none';
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl && calendarEl.__fullCalendar) {
+                calendarEl.__fullCalendar.refetchEvents();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to process reschedule request');
     });
 };
 
