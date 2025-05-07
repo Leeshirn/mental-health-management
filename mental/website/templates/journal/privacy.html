@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Privacy Settings</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Professional</th>
+            <th>Mood Access</th>
+            <th>Journal Access</th>
+            <th>Level</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for rel in relationships %}
+        <tr>
+            <td>{{ rel.professional.get_full_name }}</td>
+            <td>{{ rel.access_mood|yesno:"Yes,No" }}</td>
+            <td>{{ rel.access_journal|yesno:"Yes,No" }}</td>
+            <td>{{ rel.get_journal_access_level_display }}</td>
+            <td>
+                <a href="{% url 'update_consent' rel.id %}" class="btn">
+                    Edit Permissions
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

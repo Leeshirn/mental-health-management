@@ -1,6 +1,7 @@
 from django.urls import path  
 from . import views
 from . import appointment_views
+from . import relationship_views
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -30,5 +31,10 @@ urlpatterns = [
     path('update-appointment-status/', appointment_views.update_appointment_status, name='update_appointment_status'),
     path('reschedule_appointment/', appointment_views.reschedule_appointment, name='reschedule_appointment'),
     path('save-availability/', appointment_views.save_availability, name='save_availability'),
+    path('professional_patient_dashboard/', relationship_views.professional_patient_dashboard, name='professional_patient_dashboard'),
+    path('view_patient_mood/<int:patient_id>/mood/', relationship_views.view_patient_mood, name='view_patient_mood'),
+    path('view_patient_journal/<int:patient_id>/journal/', relationship_views.view_patient_journal, name='view_patient_journal'),
+    path('privacy-settings/', relationship_views.privacy_settings, name='privacy_settings'),
+    path('update_consent/<int:relationship_id>/', relationship_views.update_consent, name='update_consent'),
 
 ]

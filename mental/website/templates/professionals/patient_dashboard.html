@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Your Patients</h2>
+<div class="patient-grid">
+    {% for patient in patients %}
+    <div class="patient-card">
+        <h3>{{ patient.get_full_name }}</h3>
+        <div class="patient-actions">
+            <a href="{% url 'view_patient_mood' patient.id %}" class="btn">
+                View Mood Reports
+            </a>
+            {% if patient.care_team.first.access_journal %}
+            <a href="{% url 'view_patient_journal' patient.id %}" class="btn">
+                View Journal
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p>You don't have any patients yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -120,6 +120,15 @@ class JournalEntry(models.Model):
     content = models.TextField()
     sentiment_score = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
+    visibility = models.CharField(
+        max_length=20,
+        choices=[
+            ('private', 'Private'),
+            ('care_team', 'Visible to Care Team'),
+            ('public', 'Public')
+        ],
+        default='private'
+    )
     
     def analyze_sentiment(self):
         if self.content:
@@ -286,3 +295,29 @@ class Availability(models.Model):
 
     def __str__(self):
         return f"{self.professional.username} - {self.day_of_week} ({self.start_time} - {self.end_time})"
+    
+class PatientProfessionalRelationship(models.Model):
+    patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='care_team')
+    professional = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patients')
+    access_mood = models.BooleanField(default=True)
+    access_journal = models.BooleanField(default=False)
+    journal_access_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('summary', 'Only Sentiment Summary'),
+            ('titles', 'Entry Titles Only'),
+            ('full', 'Full Journal Access')
+        ],
+        default='summary'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('patient', 'professional')
+
+class AccessLog(models.Model):
+    professional = models.ForeignKey(User, on_delete=models.CASCADE, related_name='access_logs')
+    patient = models.ForeignKey(User, on_delete=models.CASCADE)
+    accessed_at = models.DateTimeField(auto_now_add=True)
+    accessed_data = models.CharField(max_length=20)  # 'mood' or 'journal'
+    

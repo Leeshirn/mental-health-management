@@ -7,7 +7,7 @@
         </div>
     {% else %}
         <p>Welcome, {{ user.first_name }}! You can now manage your patients and schedule.</p>
-        <a href="#" class="btn btn-info">Manage Patients</a>
+        <a href="{% url 'professional_patient_dashboard' %}" class="btn btn-primary">Manage Patients</a>
         <a href="{% url 'calendar_view' %}" class="btn btn-primary">View Schedule</a>
     {% endif %}
 {% endblock %}
