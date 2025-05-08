@@ -1,24 +1,73 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Your Patients</h2>
-<div class="patient-grid">
-    {% for patient in patients %}
-    <div class="patient-card">
-        <h3>{{ patient.get_full_name }}</h3>
-        <div class="patient-actions">
-            <a href="{% url 'view_patient_mood' patient.id %}" class="btn">
-                View Mood Reports
-            </a>
-            {% if patient.care_team.first.access_journal %}
-            <a href="{% url 'view_patient_journal' patient.id %}" class="btn">
-                View Journal
-            </a>
-            {% endif %}
+<div class="container mt-4">
+    <h2>Your Patients</h2>
+    
+    {% if relationships %}
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Connected Patients ({{ relationships.count }})</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Connected Since</th>
+                        <th>Mood Entries</th>
+                        <th>Journal Entries</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rel in relationships %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'patient_profile' rel.patient.id %}">
+                                {{ rel.patient.get_full_name }}
+                            </a>
+                        </td>
+                        <td>{{ rel.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            {% if rel.access_mood %}
+                                {{ rel.mood_entries_count }}
+                            {% else %}
+                                <span class="text-muted">No access</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if rel.access_journal %}
+                                {{ rel.journal_entries_count }} ({{ rel.get_journal_access_level_display }})
+                            {% else %}
+                                <span class="text-muted">No access</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                {% if rel.access_mood %}
+                                <a href="{% url 'view_patient_mood' rel.patient.id %}" class="btn btn-sm btn-info">
+                                    Mood
+                                </a>
+                                {% endif %}
+                                {% if rel.access_journal %}
+                                <a href="{% url 'view_patient_journal' rel.patient.id %}" class="btn btn-sm btn-success">
+                                    Journal
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
-    {% empty %}
-    <p>You don't have any patients yet.</p>
-    {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+        <h4>No Patients Connected</h4>
+        <p>You don't have any connected patients yet.</p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

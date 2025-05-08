@@ -27,7 +27,40 @@ def professional_patient_dashboard(request):
         care_team__professional=request.user
     ).select_related('userprofile')
 
-    return render(request, 'professionals/patient_dashboard.html', {})
+    return render(request, 'professionals/patient_dashboard.html', {'patients': patients
+})
+    
+@login_required
+def explore_professionals(request):
+    professionals = MentalHealthProfessional.objects.filter(profile_complete=True)
+    
+    context = {
+        'professionals': professionals,
+    }
+    return render(request, 'profiles/explore_professionals.html', context)
+
+
+
+@login_required
+def my_professional_view(request):
+    if request.user.userprofile.role != 'patient':
+        raise PermissionDenied
+
+    relationship = PatientProfessionalRelationship.objects.filter(
+        patient=request.user
+    ).select_related('professional').first()
+
+    professional_profile = None
+    if relationship:
+        professional_profile = MentalHealthProfessional.objects.filter(
+            user=relationship.professional
+        ).first()
+
+    return render(request, 'profiles/professional_profile_preview.html', {
+        'professional': professional_profile
+    })
+
+    
 
 @login_required
 def view_patient_mood(request, patient_id):

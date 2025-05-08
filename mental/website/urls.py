@@ -23,6 +23,7 @@ urlpatterns = [
     path('journal/settings/', views.update_journal_settings, name='update_journal_settings'),
     path('professional_profile/', appointment_views.professional_profile, name='professional_profile'),
     path('profile_preview/', appointment_views.profile_preview, name='profile_preview'),
+    path('view_professional_profile/<int:professional_id>/', appointment_views.view_professional_profile, name='view_professional_profile'),
     path('edit_profile_view/', appointment_views.edit_profile_view, name='edit_profile_view'),
     path('profile_summary_view/', appointment_views.profile_summary_view, name='profile_summary_view'),
     path('calendar/', appointment_views.calendar_view, name='calendar_view'),
@@ -36,5 +37,7 @@ urlpatterns = [
     path('view_patient_journal/<int:patient_id>/journal/', relationship_views.view_patient_journal, name='view_patient_journal'),
     path('privacy-settings/', relationship_views.privacy_settings, name='privacy_settings'),
     path('update_consent/<int:relationship_id>/', relationship_views.update_consent, name='update_consent'),
+    path('my-professional/', relationship_views.my_professional_view, name='my_professional'),
+    path('explore-professionals/', relationship_views.explore_professionals, name='explore_professionals'),
 
 ]

@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
 from .forms import SignUpForm, MoodEntryForm, JournalEntryForm, JournalSettingsForm, MentalHealthProfessionalForm, PatientProfileForm, AvailabilityForm
-from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional, PatientProfile, Appointment, Availability
+from .models import UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, MentalHealthProfessional, PatientProfile, Appointment, Availability, PatientProfessionalRelationship
 from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
@@ -97,7 +97,11 @@ def patient_dashboard(request):
         messages.error(request, 'Unauthorized access.')
         return redirect('home')
 
-    return render(request, 'patient_dashboard.html')
+    relationships = PatientProfessionalRelationship.objects.filter(
+        patient=request.user
+    ).select_related('professional')
+    
+    return render(request, 'patient_dashboard.html',{'relationships': relationships})
 
 @login_required
 def log_mood(request):

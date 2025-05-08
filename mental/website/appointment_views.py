@@ -8,7 +8,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
 from .forms import MentalHealthProfessionalForm, PatientProfileForm, AvailabilityForm
-from .models import UserProfile, MentalHealthProfessional, PatientProfile, Appointment, Availability
+from .models import UserProfile, MentalHealthProfessional, PatientProfile, Appointment, Availability,PatientProfessionalRelationship
 from django.db import models
 from django.db.models import Max, Count
 from datetime import timedelta, datetime
@@ -65,19 +65,43 @@ def professional_profile(request):
 
     return render(request, 'profiles/professional_profile.html', {'form': form})
 
+
 @login_required
 def profile_preview(request):
-    try:
-        professional = request.user.mental_health_pro
-    except MentalHealthProfessional.DoesNotExist:
-        messages.error(request, "This account is not registered as a mental health professional.")
-        return redirect('home')
-    
+    user = request.user
+
+    if hasattr(user, 'mental_health_pro'):
+        # Case: Professional viewing their own profile
+        professional = user.mental_health_pro
+
+    else:
+        # Case: Patient viewing their connected professional's profile
+        relationship = PatientProfessionalRelationship.objects.filter(
+            patient=user
+        ).select_related('professional').first()
+
+        if relationship and hasattr(relationship.professional, 'mental_health_pro'):
+            professional = relationship.professional.mental_health_pro
+        else:
+            messages.warning(request, "You're not currently connected to any professional.")
+            return redirect('home')
+
     context = {
         'professional': professional,
         'approaches': professional.get_approaches_list(),
     }
     return render(request, 'profiles/professional_profile_preview.html', context)
+
+@login_required
+def view_professional_profile(request, professional_id):
+    professional = get_object_or_404(MentalHealthProfessional, user_id=professional_id)
+
+    context = {
+        'professional': professional,
+        'approaches': professional.get_approaches_list()
+    }
+    return render(request, 'profiles/professional_profile_preview.html', context)
+
 
 @login_required
 def calendar_view(request):

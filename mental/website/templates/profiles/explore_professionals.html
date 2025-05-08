@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4">Explore Professionals</h2>
+
+    <div class="row">
+        {% for professional in professionals %}
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>{{ professional.user.first_name }} {{ professional.user.last_name }}</h4>
+                        <p>{{ professional.profession }}</p>
+                    </div>
+                    <div class="card-body">
+                        <p>{{ professional.bio }}</p>
+                        <a href="{% url 'view_professional_profile' professional.user.id %}">View Profile</a>
+
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No professionals available.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

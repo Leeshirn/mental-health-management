@@ -3,15 +3,12 @@
 {% block content %}
 <div class="container mt-4">
     <h2 class="text-center mb-4">Patient Dashboard</h2>
-    
-    
+
     <div class="row">
-    <!-- Mood Tracker Card -->
-        <div class="col-md-6">
+        <!-- Mood Tracker Card -->
+        <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    Mood Tracker
-                </div>
+                <div class="card-header bg-secondary text-white">Mood Tracker</div>
                 <div class="card-body">
                     <p>Monitor and log your moods to track your emotional well-being over time.</p>
                     <a href="{% url 'log_mood' %}" class="btn btn-info">Log Mood</a>
@@ -19,19 +16,32 @@
                 </div>
             </div>
         </div>
-    
+
         <!-- Journal Card -->
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    Journal
-                </div>
+                <div class="card-header bg-secondary text-white">Journal</div>
                 <div class="card-body">
                     <p>Maintain your personal journal entries to reflect on your thoughts and experiences.</p>
                     <a href="{% url 'journal_dashboard' %}" class="btn btn-info">Go to Journal</a>
                 </div>
             </div>
         </div>
+
+        <!-- My Professional Card -->
+       <!-- Connected Professional Card -->
+<div class="col-md-6 mt-4">
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            Your Mental Health Professional
+        </div>
+        <div class="card-body">
+            <p>View details of the professional you are connected with.</p>
+            <a href="{% url 'my_professional' %}" class="btn btn-info">View Professional</a>
+        </div>
+    </div>
+</div>
+
     </div>
 </div>
 {% endblock %}

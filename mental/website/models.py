@@ -297,6 +297,13 @@ class Availability(models.Model):
         return f"{self.professional.username} - {self.day_of_week} ({self.start_time} - {self.end_time})"
     
 class PatientProfessionalRelationship(models.Model):
+    STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('accepted', 'Accepted'),
+    ('rejected', 'Rejected'),
+    ]
+    
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='care_team')
     professional = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patients')
     access_mood = models.BooleanField(default=True)
