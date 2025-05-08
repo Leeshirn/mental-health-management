@@ -306,6 +306,8 @@ class PatientProfessionalRelationship(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='care_team')
     professional = models.ForeignKey(User, on_delete=models.CASCADE, related_name='patients')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending') 
+    rejection_reason = models.TextField(blank=True, null=True)
     access_mood = models.BooleanField(default=True)
     access_journal = models.BooleanField(default=False)
     journal_access_level = models.CharField(

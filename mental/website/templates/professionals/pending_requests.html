@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Pending Patient Requests</h2>
+
+{% if requests %}
+{% for r in requests %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ r.patient.get_full_name }}</h5>
+      <p class="card-text">Requested on: {{ r.created_at|date:"M d, Y" }}</p>
+
+      <form method="post" action="{% url 'handle_connection_request' r.id %}" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="accept">
+        <button type="submit" class="btn btn-success">Accept</button>
+      </form>
+
+      <form method="post" action="{% url 'handle_connection_request' r.id %}" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="reject">
+        <textarea name="rejection_reason" class="form-control mb-2 mt-2" placeholder="Reason for rejection (optional)"></textarea>
+        <button type="submit" class="btn btn-danger">Reject</button>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+
+{% else %}
+  <div class="alert alert-info">
+    You currently have no pending connection requests from patients.
+  </div>
+{% endif %}
+{% endblock %}

@@ -39,5 +39,10 @@ urlpatterns = [
     path('update_consent/<int:relationship_id>/', relationship_views.update_consent, name='update_consent'),
     path('my-professional/', relationship_views.my_professional_view, name='my_professional'),
     path('explore-professionals/', relationship_views.explore_professionals, name='explore_professionals'),
+    path('request-connection/<int:professional_id>/', relationship_views.request_connection, name='request_connection'),
+    path('pending-requests/', relationship_views.pending_requests, name='pending_requests'),
+    path('respond-request/<int:relationship_id>/<str:action>/', relationship_views.respond_to_request, name='respond_to_request'),
+    path('handle_connection_request/<int:request_id>/', relationship_views.handle_connection_request, name='handle_connection_request'),
+
 
 ]

@@ -32,13 +32,126 @@ def professional_patient_dashboard(request):
     
 @login_required
 def explore_professionals(request):
-    professionals = MentalHealthProfessional.objects.filter(profile_complete=True)
     
+    professionals = MentalHealthProfessional.objects.filter(profile_complete=True).select_related('user')
+
+    # Get all relationships for the current patient
+    relationships = PatientProfessionalRelationship.objects.filter(
+        patient=request.user
+    )
+
+    # Build a dictionary for quick lookup: {professional_user_id: status}
+    relationship_dict = {rel.professional.id: rel for rel in relationships}
+
+    # Add status info to each professional
+    for professional in professionals:
+        rel = relationship_dict.get(professional.user.id)
+        if rel:
+            professional.connection_status = rel.status
+            professional.rejection_reason = rel.rejection_reason
+        else:
+            professional.connection_status = None
+            professional.rejection_reason = ''
+
     context = {
         'professionals': professionals,
     }
     return render(request, 'profiles/explore_professionals.html', context)
 
+@login_required
+def request_connection(request, professional_id):
+    professional = get_object_or_404(User, id=professional_id)
+
+    if professional == request.user:
+        messages.warning(request, "You can't connect with yourself.")
+        return redirect('explore_professionals')
+
+    relationship, created = PatientProfessionalRelationship.objects.get_or_create(
+        patient=request.user,
+        professional=professional,
+        defaults={'status': 'pending'}
+    )
+
+    if not created:
+        if relationship.status == 'pending':
+            messages.info(request, "You’ve already sent a request.")
+        elif relationship.status == 'accepted':
+            messages.info(request, "You’re already connected.")
+        else:
+            # Reset status to pending and clear rejection reason
+            relationship.status = 'pending'
+            relationship.rejection_reason = ''
+            relationship.save()
+            messages.success(request, "Request re-sent.")
+    else:
+        messages.success(request, "Connection request sent.")
+
+    return redirect('explore_professionals')
+
+
+@login_required
+def respond_to_request(request, relationship_id, action):
+    relationship = get_object_or_404(
+        PatientProfessionalRelationship, 
+        id=relationship_id, 
+        professional=request.user
+    )
+
+    if request.method == 'POST':
+        if action == 'accept':
+            relationship.status = 'accepted'
+            relationship.rejection_reason = ''
+            messages.success(request, "Request accepted.")
+        elif action == 'reject':
+            reason = request.POST.get('rejection_reason', '').strip()
+            relationship.status = 'rejected'
+            relationship.rejection_reason = reason
+            messages.info(request, "Request rejected with reason.")
+        else:
+            messages.error(request, "Invalid action.")
+            return redirect('pending_requests')
+
+        relationship.save()
+
+    return redirect('pending_requests')
+
+
+
+@login_required
+def pending_requests(request):
+    requests = PatientProfessionalRelationship.objects.filter(
+        professional=request.user,
+        status='pending'
+    ).select_related('patient')
+    return render(request, 'professionals/pending_requests.html', {'requests': requests})
+
+
+@login_required
+def handle_connection_request(request, request_id):
+    relationship = get_object_or_404(PatientProfessionalRelationship, id=request_id)
+
+    if relationship.professional != request.user:
+        raise PermissionDenied
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+
+        if action == "accept":
+            relationship.status = "accepted"
+            relationship.rejection_reason = None  # clear if previously set
+            messages.success(request, "Connection accepted.")
+        elif action == "reject":
+            reason = request.POST.get("rejection_reason", "").strip()
+            relationship.status = "rejected"
+            relationship.rejection_reason = reason
+            messages.info(request, "Connection rejected with reason.")
+        else:
+            messages.error(request, "Invalid action.")
+            return redirect('pending_requests')
+
+        relationship.save()
+
+    return redirect('pending_requests')
 
 
 @login_required
@@ -57,10 +170,10 @@ def my_professional_view(request):
         ).first()
 
     return render(request, 'profiles/professional_profile_preview.html', {
-        'professional': professional_profile
+        'professional': professional_profile,
+        'relationship': relationship,
     })
 
-    
 
 @login_required
 def view_patient_mood(request, patient_id):

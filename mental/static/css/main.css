@@ -8,8 +8,6 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-
-
 .profile-header {
     display: flex;
     align-items: center;
@@ -50,6 +48,19 @@
     flex: 1;
 }
 
+.card {
+    border-radius: 10px;
+    transition: transform 0.3s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.btn-block {
+    border-radius: 5px;
+}
+
 .bio-row {
     align-items: flex-start;
 }
@@ -59,9 +70,6 @@
     margin: 0;
 }
 
-body {
-    background-color: lightblue;
-  }
 /* Edit Form Styles */
 .edit-form {
     max-width: 600px;

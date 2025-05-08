@@ -2,7 +2,6 @@
 
 {% block content %}
 <div class="professional-profile-container">
-    {% if professional %}
     <!-- Header Section -->
     <div class="profile-header">
         {% if professional.profile_picture %}
@@ -73,11 +72,7 @@
         </div>
         {% endif %}
     </div>
-    {% else %}
-        <div class="text-center mt-5">
-            <h4>You are not currently connected to any professional.</h4>
-            <p>Please <a href="{% url 'explore_professionals' %}">browse professionals</a> to connect.</p>
-        </div>
-    {% endif %}
 </div>
 {% endblock %}
+
+

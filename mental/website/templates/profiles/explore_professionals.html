@@ -15,8 +15,37 @@
                     <div class="card-body">
                         <p>{{ professional.bio }}</p>
                         <a href="{% url 'view_professional_profile' professional.user.id %}">View Profile</a>
-
+                    
+                        {% if professional.connection_status == 'pending' %}
+                            <button class="btn btn-secondary" disabled>Request Sent</button>
+                        {% elif professional.connection_status == 'accepted' %}
+                            <button class="btn btn-success" disabled>Connected</button>
+                        {% elif professional.connection_status == 'rejected' %}
+                            <a href="{% url 'request_connection' professional_id=professional.user.id %}" class="btn btn-warning">
+                                Resend Request
+                            </a>
+                        {% else %}
+                        {% if professional.connection_status == 'pending' %}
+                        <button class="btn btn-secondary" disabled>Request Pending</button>
+                    {% elif professional.connection_status == 'accepted' %}
+                        <button class="btn btn-success" disabled>Connected</button>
+                    {% elif professional.connection_status == 'rejected' %}
+                        <a href="{% url 'request_connection' professional_id=professional.user.id %}" 
+                           class="btn btn-warning"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="Rejected: {{ professional.rejection_reason }}">
+                            Resend Request
+                        </a>
+                    {% else %}
+                        <a href="{% url 'request_connection' professional_id=professional.user.id %}" class="btn btn-primary">
+                            Request Connection
+                        </a>
+                    {% endif %}
+                    
+                        {% endif %}
                     </div>
+                    
                 </div>
             </div>
         {% empty %}
