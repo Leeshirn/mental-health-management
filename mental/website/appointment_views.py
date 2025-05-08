@@ -109,18 +109,24 @@ def calendar_view(request):
 
     if user_profile.role == 'professional':
         appointments = Appointment.objects.filter(professional=request.user)
+        connected_professionals = []
     elif user_profile.role == 'patient':
         appointments = Appointment.objects.filter(patient=request.user)
+        connected_ids = PatientProfessionalRelationship.objects.filter(
+            patient=user_profile.user,
+            status='approved'
+        ).values_list('professional_id', flat=True)
+
+        connected_professionals = User.objects.filter(id__in=connected_ids)
     else:
         appointments = []
+        connected_professionals = []
 
-    # Fetch all professionals for patient selection
-    professionals = User.objects.filter(userprofile__role='professional', userprofile__is_verified=True)
-
+    
     return render(request, 'professionals/calendar.html', {
         'appointments': appointments,
         'user_profile': user_profile,
-        'professionals': professionals
+        'connected_professionals': connected_professionals
     })
 
 @csrf_exempt
@@ -176,37 +182,54 @@ def create_from_calendar(request):
         )
         return JsonResponse({'message': 'Appointment requested successfully!'})
 
+from django.http import JsonResponse, HttpResponseForbidden
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def calendar_data(request):
     user = request.user
     user_profile = UserProfile.objects.get(user=user)
     professional_id = request.GET.get('professional_id')
-
     events = []
 
+    # PATIENT ROLE
     if user_profile.role == 'patient' and professional_id:
         try:
             professional = User.objects.get(id=professional_id)
         except User.DoesNotExist:
             return JsonResponse([], safe=False)
 
+        # ✅ Ensure patient is connected to this professional
+        is_connected = PatientProfessionalRelationship.objects.filter(
+            patient=user,
+            professional=professional,
+            status='approved'
+        ).exists()
+
+        if not is_connected:
+            return HttpResponseForbidden("You are not connected to this professional.")
+
         appointments = Appointment.objects.filter(professional=professional, patient=user)
         availabilities = Availability.objects.filter(professional=professional)
 
+    # PROFESSIONAL ROLE
     elif user_profile.role == 'professional':
-        appointments = Appointment.objects.filter(professional=user)
-        availabilities = Availability.objects.filter(professional=user)
+        professional = user  # always themselves
+        appointments = Appointment.objects.filter(professional=professional)
+        availabilities = Availability.objects.filter(professional=professional)
 
     else:
+        # Not a valid combination
         appointments = []
         availabilities = []
 
-    # Add availability blocks
+    # ➕ Add availability blocks to calendar
+    weekdays = {
+        'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0
+    }
+
     for slot in availabilities:
-        weekdays = {
-            'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-            'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0
-        }
         day_index = weekdays.get(slot.day_of_week, None)
         if day_index is None:
             continue
@@ -220,7 +243,7 @@ def calendar_data(request):
             'color': '#d4f5d4',
         })
 
-    # Add appointments
+    # ➕ Add appointments
     for appt in appointments:
         event_color = {
             'pending': '#f0ad4e',
@@ -232,7 +255,11 @@ def calendar_data(request):
 
         events.append({
             'id': appt.id,
-            'title': f"{appt.patient.username if user_profile.role == 'professional' else appt.professional.username}",
+            'title': (
+                appt.patient.username
+                if user_profile.role == 'professional'
+                else appt.professional.username
+            ),
             'start': f"{appt.date}T{appt.time}",
             'end': f"{appt.date}T{appt.time}",
             'status': appt.status,

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>Edit Permissions for {{ relationship.professional.get_full_name }}</h3>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <h4>Data Access Permissions</h4>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="access_mood" 
+                               name="access_mood" {% if relationship.access_mood %}checked{% endif %}>
+                        <label class="form-check-label" for="access_mood">
+                            <strong>Allow Mood Data Access</strong>
+                            <p class="text-muted small">Enable to share your mood tracking history with this professional</p>
+                        </label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="access_journal" 
+                               name="access_journal" {% if relationship.access_journal %}checked{% endif %}>
+                        <label class="form-check-label" for="access_journal">
+                            <strong>Allow Journal Access</strong>
+                            <p class="text-muted small">Enable to share your journal entries with this professional</p>
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="journal_access_level" class="form-label"><strong>Journal Access Level</strong></label>
+                        <select class="form-select" id="journal_access_level" name="journal_access_level">
+                            {% for value, display in JOURNAL_ACCESS_LEVELS %}
+                            <option value="{{ value }}" {% if value == relationship.journal_access_level %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            <ul class="small">
+                                <li><strong>Summary Only:</strong> Professional can see only sentiment analysis</li>
+                                <li><strong>Titles Only:</strong> Professional can see entry titles and dates</li>
+                                <li><strong>Full Access:</strong> Professional can read full journal entries</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'privacy_settings' %}" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mt-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h4><i class="fas fa-exclamation-triangle"></i> Important Notes</h4>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li>Changes take effect immediately</li>
+                <li>Professionals will be notified of permission reductions</li>
+                <li>You can modify these settings at any time</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

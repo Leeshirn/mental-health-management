@@ -1,5 +1,5 @@
 import json
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404 
 from django.contrib.auth import authenticate,login, logout 
 from django.contrib.auth.decorators import login_required
@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib import messages 
-from .forms import MentalHealthProfessionalForm, PatientProfileForm, AvailabilityForm,PatientConsentForm
+from .forms import MentalHealthProfessionalForm, NoteForm, PatientProfileForm, AvailabilityForm,PatientConsentForm
 from .models import UserProfile, MentalHealthProfessional, PatientProfile, Appointment, Availability,UserProfile, MoodEntry,JournalEntry, JournalSettings, JournalPrompt, PatientProfessionalRelationship
 from django.db import models
 from django.db.models import Max, Count
@@ -23,12 +23,28 @@ def professional_patient_dashboard(request):
     if profile.role != 'professional' or not profile.is_verified:
         return redirect('home')
 
-    patients = User.objects.filter(
-        care_team__professional=request.user
-    ).select_related('userprofile')
+    relationships = PatientProfessionalRelationship.objects.filter(
+        professional=request.user,
+        status='accepted'
+    ).select_related('patient__userprofile')
 
-    return render(request, 'professionals/patient_dashboard.html', {'patients': patients
-})
+    # Optional: Add entry counts for display
+    for rel in relationships:
+        if rel.access_mood:
+            rel.mood_entries_count = MoodEntry.objects.filter(user=rel.patient).count()
+        else:
+            rel.mood_entries_count = 0
+
+        if rel.access_journal:
+            rel.journal_entries_count = JournalEntry.objects.filter(user=rel.patient).count()
+        else:
+            rel.journal_entries_count = 0
+
+    return render(request, 'professionals/patient_dashboard.html', {
+        'relationships': relationships
+    })
+
+
     
 @login_required
 def explore_professionals(request):
@@ -233,7 +249,7 @@ def privacy_settings(request):
         patient=request.user
     ).select_related('professional')
 
-    return render(request, 'patient/privacy_settings.html', {
+    return render(request, 'journal/privacy.html', {
         'relationships': relationships
     })
 
@@ -253,7 +269,36 @@ def update_consent(request, relationship_id):
     else:
         form = PatientConsentForm(instance=relationship)
 
-    return render(request, 'patient/update_consent.html', {
+    return render(request, 'journal/consent.html', {
         'form': form,
         'professional': relationship.professional
+    })
+    
+@login_required
+def shared_notes_view(request, relationship_id):
+    relationship = get_object_or_404(PatientProfessionalRelationship, id=relationship_id)
+
+    user = request.user
+
+    if user != relationship.professional and user != relationship.patient:
+        return HttpResponseForbidden("You do not have permission to view these notes.")
+
+    # Show all notes in the relationship
+    notes = relationship.notes.order_by('-created_at')
+
+    if request.method == 'POST':
+        form = NoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.relationship = relationship
+            note.author = user
+            note.save()
+            return redirect('shared_notes_view', relationship_id=relationship.id)
+    else:
+        form = NoteForm()
+
+    return render(request, 'shared_notes.html', {
+        'relationship': relationship,
+        'notes': notes,
+        'form': form,
     })

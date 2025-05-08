@@ -265,9 +265,9 @@ class Appointment(models.Model):
     date = models.DateField()
     time = models.TimeField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
     
+    created_at = models.DateTimeField(auto_now_add=True)
+
     # Reschedule fields
     reschedule_request_date = models.DateField(null=True, blank=True)
     reschedule_request_time = models.TimeField(null=True, blank=True)
@@ -330,3 +330,18 @@ class AccessLog(models.Model):
     accessed_at = models.DateTimeField(auto_now_add=True)
     accessed_data = models.CharField(max_length=20)  # 'mood' or 'journal'
     
+class Note(models.Model):
+    relationship = models.ForeignKey(
+        PatientProfessionalRelationship,
+        on_delete=models.CASCADE,
+        related_name='notes'
+    )
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_author_professional(self):
+        return self.author == self.relationship.professional
+
+    def is_author_patient(self):
+        return self.author == self.relationship.patient

@@ -29,12 +29,14 @@
                         <td>{{ rel.access_mood|yesno:"Yes,No" }}</td>
                         <td>{{ rel.access_journal|yesno:"Yes,No" }}</td>
                         <td>{{ rel.get_journal_access_level_display }}</td>
+                        
                         <td>
                             <a href="{% url 'update_consent' rel.id %}" class="btn btn-sm btn-primary">
                                 Edit Permissions
                             </a>
                         </td>
                     </tr>
+                    <a href="{% url 'shared_notes_view' rel.id %}" class="btn btn-sm btn-warning">Notes</a>
                     {% endfor %}
                 </tbody>
             </table>

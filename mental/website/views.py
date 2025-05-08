@@ -75,6 +75,10 @@ def register_user(request):
 @login_required
 def professional_dashboard(request):
     profile = UserProfile.objects.get(user=request.user)
+    relationships = PatientProfessionalRelationship.objects.filter(
+        professional=request.user,
+        status='accepted'
+    ).select_related('patient__userprofile')
 
     if profile.role != 'professional':
         messages.error(request, 'Unauthorized access.')
@@ -84,7 +88,7 @@ def professional_dashboard(request):
         messages.warning(request, 'Your account is pending verification.')
         return redirect('home')
 
-    return render(request, 'professional_dashboard.html', {})
+    return render(request, 'professional_dashboard.html', {'relationships': relationships})
 
 def pending_verification(request):
     return render(request, 'pending_verification.html', {})

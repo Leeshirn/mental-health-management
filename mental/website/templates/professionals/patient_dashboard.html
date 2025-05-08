@@ -24,7 +24,7 @@
                     {% for rel in relationships %}
                     <tr>
                         <td>
-                            <a href="{% url 'patient_profile' rel.patient.id %}">
+                            <a href="{% url "profile_summary_view" %}">
                                 {{ rel.patient.get_full_name }}
                             </a>
                         </td>
@@ -54,6 +54,7 @@
                                 <a href="{% url 'view_patient_journal' rel.patient.id %}" class="btn btn-sm btn-success">
                                     Journal
                                 </a>
+                                
                                 {% endif %}
                             </div>
                         </td>

@@ -43,6 +43,7 @@ urlpatterns = [
     path('pending-requests/', relationship_views.pending_requests, name='pending_requests'),
     path('respond-request/<int:relationship_id>/<str:action>/', relationship_views.respond_to_request, name='respond_to_request'),
     path('handle_connection_request/<int:request_id>/', relationship_views.handle_connection_request, name='handle_connection_request'),
+    path('shared_notes_view/<int:relationship_id>/notes/', relationship_views.shared_notes_view, name='shared_notes_view'),
 
 
 ]

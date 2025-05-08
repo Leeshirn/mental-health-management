@@ -2,14 +2,17 @@
 {% block content %}
 <h2>📅 Appointment Calendar</h2>
 
-{% if user_profile.role == 'patient' %}
-<label for="professionalSelect">Choose a Professional:</label>
-<select id="professionalSelect">
-    {% for pro in professionals %}
-        <option value="{{ pro.id }}">{{ pro.username }}</option>
-    {% endfor %}
-</select>
+{% if user_profile.role == 'patient' and connected_professionals|length > 1 %}
+    <label for="professionalSelect">Choose a Professional:</label>
+    <select id="professionalSelect">
+        {% for pro in connected_professionals %}
+            <option value="{{ pro.id }}">{{ pro.username }}</option>
+        {% endfor %}
+    </select>
+{% elif user_profile.role == 'patient' and connected_professionals %}
+    <input type="hidden" id="professionalSelect" value="{{ connected_professionals.0.id }}">
 {% endif %}
+
 
 <div id="calendar"></div>
 

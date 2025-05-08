@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django import forms
 from .models import UserProfile
-from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional, PatientProfile, Availability,PatientProfessionalRelationship
+from .models import MoodEntry, JournalEntry, JournalSettings,  MentalHealthProfessional, PatientProfile, Availability,PatientProfessionalRelationship, Note
 from django.core.validators import MinValueValidator
 
 class SignUpForm(UserCreationForm):
@@ -178,4 +178,19 @@ class PatientConsentForm(forms.ModelForm):
         fields = ['access_mood', 'access_journal', 'journal_access_level']
         widgets = {
             'journal_access_level': forms.RadioSelect
+        }
+        
+class NoteForm(forms.ModelForm):
+    class Meta:
+        model = Note
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Write a note about this session...'
+            })
+        }
+        labels = {
+            'content': ''
         }

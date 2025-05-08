@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Notes between {{ relationship.professional.get_full_name }} and {{ relationship.patient.get_full_name }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Add Note</button>
+    </form>
+
+    <hr>
+
+    {% for note in notes %}
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>{{ note.author.get_full_name }}</strong> 
+            on {{ note.created_at|date:"M d, Y H:i" }}
+        </div>
+        <div class="card-body">
+            <p>{{ note.content }}</p>
+        </div>
+    </div>
+    {% empty %}
+    <p>No notes yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}
