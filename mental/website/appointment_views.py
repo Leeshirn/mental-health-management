@@ -133,58 +133,69 @@ def calendar_view(request):
 @login_required
 def create_from_calendar(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        date_str = data.get('date')
-        time_str = data.get('time')
-        professional_id = data.get('professional_id')
-
         try:
-            appt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            appt_time = datetime.strptime(time_str, '%H:%M:%S').time()
-        except ValueError as e:
-            return JsonResponse({'message': f'Invalid date/time format. Error: {str(e)}'}, status=400)
+            data = json.loads(request.body)
+            date_str = data.get('date')
+            time_str = data.get('time')
+            professional_id = data.get('professional_id')
 
-        try:
-            professional = User.objects.get(id=professional_id, userprofile__role='professional', userprofile__is_verified=True)
-        except User.DoesNotExist:
-            return JsonResponse({'message': 'Selected professional not found.'}, status=400)
+            try:
+                appt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                appt_time = datetime.strptime(time_str, '%H:%M:%S').time()
+            except ValueError as e:
+                return JsonResponse({'message': f'Invalid date/time format. Error: {str(e)}'}, status=400)
 
-        # Check availability
-        day_of_week = appt_date.strftime('%A')
-        available_slots = Availability.objects.filter(
-            professional=professional,
-            day_of_week=day_of_week,
-            start_time__lte=appt_time,
-            end_time__gt=appt_time
-        )
+            try:
+                professional = User.objects.get(id=professional_id, userprofile__role='professional')
+            except User.DoesNotExist:
+                return JsonResponse({'message': 'Selected professional not found.'}, status=400)
 
-        if not available_slots.exists():
-            return JsonResponse({'message': "Selected time is not within the professional's availability."}, status=400)
+            # Check if patient is connected to this professional
+            is_connected = PatientProfessionalRelationship.objects.filter(
+                patient=request.user,
+                professional=professional,
+                status='approved'
+            ).exists()
+            
+            if not is_connected:
+                return JsonResponse({'message': 'You are not connected to this professional.'}, status=403)
 
-        # Check for existing appointment at this time
-        existing_appt = Appointment.objects.filter(
-            professional=professional,
-            date=appt_date,
-            time=appt_time,
-            status__in=['pending', 'approved']
-        ).exists()
+            # Check availability
+            day_of_week = appt_date.strftime('%A')
+            available_slots = Availability.objects.filter(
+                professional=professional,
+                day_of_week=day_of_week,
+                start_time__lte=appt_time,
+                end_time__gt=appt_time
+            )
 
-        if existing_appt:
-            return JsonResponse({'message': 'This time slot is already booked.'}, status=400)
+            if not available_slots.exists():
+                return JsonResponse({'message': "Selected time is not within the professional's availability."}, status=400)
 
-        # Create the appointment
-        Appointment.objects.create(
-            patient=request.user,
-            professional=professional,
-            date=appt_date,
-            time=appt_time,
-            status='pending'
-        )
-        return JsonResponse({'message': 'Appointment requested successfully!'})
+            # Check for existing appointment at this time
+            existing_appt = Appointment.objects.filter(
+                professional=professional,
+                date=appt_date,
+                time=appt_time,
+                status__in=['pending', 'approved']
+            ).exists()
 
-from django.http import JsonResponse, HttpResponseForbidden
-from django.contrib.auth.decorators import login_required
+            if existing_appt:
+                return JsonResponse({'message': 'This time slot is already booked.'}, status=400)
 
+            # Create the appointment
+            Appointment.objects.create(
+                patient=request.user,
+                professional=professional,
+                date=appt_date,
+                time=appt_time,
+                status='pending'
+            )
+            return JsonResponse({'message': 'Appointment requested successfully!'})
+
+        except Exception as e:
+            return JsonResponse({'message': f'Error: {str(e)}'}, status=500)
+        
 @login_required
 def calendar_data(request):
     user = request.user
@@ -359,10 +370,10 @@ def save_availability(request):
             if not all([day_of_week, start_time_str, end_time_str]):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
             
-            # Parse times
+            # Parse times (handle both HH:MM:SS and HH:MM formats)
             try:
-                start_time = datetime.strptime(start_time_str, '%H:%M:%S').time()
-                end_time = datetime.strptime(end_time_str, '%H:%M:%S').time()
+                start_time = parse_time(start_time_str)
+                end_time = parse_time(end_time_str)
             except ValueError as e:
                 return JsonResponse({'error': f'Invalid time format: {str(e)}'}, status=400)
             
@@ -378,9 +389,19 @@ def save_availability(request):
                 end_time=end_time
             )
             
-            return JsonResponse({'status': 'success'})
+            return JsonResponse({'message': 'Availability saved successfully!'})
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def parse_time(time_str):
+    """Helper function to parse time strings in various formats"""
+    try:
+        return datetime.strptime(time_str, '%H:%M:%S').time()
+    except ValueError:
+        try:
+            return datetime.strptime(time_str, '%H:%M').time()
+        except ValueError:
+            raise ValueError("Time must be in HH:MM or HH:MM:SS format")

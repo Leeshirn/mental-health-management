@@ -69,13 +69,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 calendar.unselect();
                 return;
             }
-
+        
             if (userRole === 'patient') {
                 const professionalId = document.getElementById("professionalSelect").value;
                 const professionalName = document.getElementById("professionalSelect")
                     .options[document.getElementById("professionalSelect").selectedIndex].text;
                 
-                if (confirm(`Request appointment with ${professionalName} on ${info.startStr}?`)) {
+                if (confirm(`Request appointment with ${professionalName} on ${info.start.toLocaleString()}?`)) {
                     fetch('{% url "create_from_calendar" %}', {
                         method: 'POST',
                         headers: {
@@ -83,40 +83,58 @@ document.addEventListener('DOMContentLoaded', function() {
                             'X-CSRFToken': getCookie('csrftoken')
                         },
                         body: JSON.stringify({
-                            date: info.startStr.split("T")[0],
-                            time: info.startStr.split("T")[1].split("+")[0],
+                            date: info.start.toISOString().split('T')[0],  // YYYY-MM-DD
+                            time: info.start.toTimeString().substring(0, 8),  // HH:MM:SS
                             professional_id: professionalId
                         })
                     })
-                    .then(res => res.json())
-                    .then(data => {
-                        alert(data.message);
-                        calendar.refetchEvents();
-                    });
-                }
-            } else if (userRole === 'professional') {
-                if (confirm(`Set availability from ${info.startStr} to ${info.endStr}?`)) {
-                    fetch('{% url "save_availability" %}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            day_of_week: info.start.toLocaleString('en-US', { weekday: 'long' }),
-                            start_time: info.start.toLocaleTimeString('en-US', {hour12: false}),
-                            end_time: info.end.toLocaleTimeString('en-US', {hour12: false})
-                        })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
                     })
-                    .then(res => res.json())
                     .then(data => {
-                        alert(data.message || data.error);
+                        alert(data.message || 'Appointment requested successfully!');
                         calendar.refetchEvents();
+                    })
+                    .catch(error => {
+                        alert(error.message || 'Failed to request appointment');
+                        console.error('Error:', error);
                     });
                 }
-            }
-            calendar.unselect();
-        },
+   
+                    } else if (userRole === 'professional') {
+                        if (confirm(`Set availability from ${info.startStr} to ${info.endStr}?`)) {
+                            fetch('{% url "save_availability" %}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                },
+                                body: JSON.stringify({
+                                    day_of_week: info.start.toLocaleString('en-US', { weekday: 'long' }),
+                                    start_time: info.start.toLocaleTimeString('en-US', {hour12: false}),
+                                    end_time: info.end.toLocaleTimeString('en-US', {hour12: false})
+                                })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.error) {
+                                    alert(data.error);
+                                } else {
+                                    alert('Availability saved successfully!');
+                                    calendar.refetchEvents();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('Failed to save availability');
+                            });
+                        }
+                    }
+                    calendar.unselect();
+                },
 
         eventClick: function(info) {
             const event = info.event;
@@ -346,6 +364,7 @@ function getCookie(name) {
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -354,5 +373,6 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
 </script>
 {% endblock %}
