@@ -2,29 +2,31 @@
 {% block content %}
 <h2>📅 Appointment Calendar</h2>
 
-{% if user_profile.role == 'patient' and connected_professionals|length > 1 %}
-    <label for="professionalSelect">Choose a Professional:</label>
-    <select id="professionalSelect">
-        {% for pro in connected_professionals %}
-            <option value="{{ pro.id }}">{{ pro.username }}</option>
-        {% endfor %}
-    </select>
-{% elif user_profile.role == 'patient' and connected_professionals %}
-    <input type="hidden" id="professionalSelect" value="{{ connected_professionals.0.id }}">
+{% if connected_professionals %}
+    {% if connected_professionals|length > 1 %}
+        <label for="professionalSelect">Choose a Professional:</label>
+        <select id="professionalSelect">
+            <option value="all">All Professionals</option>
+            {% for prof in connected_professionals %}
+                <option value="{{ prof.id }}">{{ prof.username }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        <input type="hidden" id="professionalSelect" value="{{ connected_professionals.0.id }}" data-professional-name="{{ connected_professionals.0.username }}">
+        <p>Showing calendar for {{ connected_professionals.0.username }}</p>
+    {% endif %}
+{% else %}
+    <p><em>No connected professionals found. Please connect with a professional to book appointments.</em></p>
 {% endif %}
-
 
 <div id="calendar"></div>
 
-<!-- Modal for appointment details -->
 <div id="appointmentModal" class="modal" style="display:none;">
     <div class="modal-content">
         <span class="close">&times;</span>
         <div id="modalContent"></div>
     </div>
 </div>
-
-
 {% endblock %}
 
 {% block extra_js %}
@@ -48,6 +50,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target == modal) modal.style.display = 'none';
     };
 
+    // Auto-select the professional if only one option (and it's a select element)
+    if (userRole === 'patient') {
+        const professionalSelect = document.getElementById("professionalSelect");
+        if (professionalSelect && professionalSelect.tagName === 'SELECT' && professionalSelect.options.length === 2) {
+            professionalSelect.value = professionalSelect.options[1].value;
+        }
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
         headerToolbar: {
@@ -64,17 +74,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         select: function(info) {
             const now = new Date();
-            if (info.start < now) {
+            // Allow selecting past times only for professionals setting availability
+            if (userRole === 'patient' && info.start < now) {
                 alert("Cannot book appointments in the past");
                 calendar.unselect();
                 return;
             }
-        
+            
             if (userRole === 'patient') {
-                const professionalId = document.getElementById("professionalSelect").value;
-                const professionalName = document.getElementById("professionalSelect")
-                    .options[document.getElementById("professionalSelect").selectedIndex].text;
+                const professionalSelect = document.getElementById("professionalSelect");
+                let professionalId = null;
+                let professionalName = "the selected professional"; // Default generic name
+
+                if (professionalSelect) {
+                    professionalId = professionalSelect.value;
+                    if (professionalSelect.tagName === 'SELECT' && professionalSelect.selectedIndex !== -1) {
+                        professionalName = professionalSelect.options[professionalSelect.selectedIndex].text;
+                    } else if (professionalSelect.tagName === 'INPUT' && professionalSelect.dataset.professionalName) {
+                        // For the hidden input, get name from data attribute
+                        professionalName = professionalSelect.dataset.professionalName;
+                    }
+                }
                 
+                if (!professionalId || professionalId === 'all') {
+                    alert("Please select a specific professional to book an appointment.");
+                    calendar.unselect();
+                    return;
+                }
+
                 if (confirm(`Request appointment with ${professionalName} on ${info.start.toLocaleString()}?`)) {
                     fetch('{% url "create_from_calendar" %}', {
                         method: 'POST',
@@ -83,8 +110,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             'X-CSRFToken': getCookie('csrftoken')
                         },
                         body: JSON.stringify({
-                            date: info.start.toISOString().split('T')[0],  // YYYY-MM-DD
-                            time: info.start.toTimeString().substring(0, 8),  // HH:MM:SS
+                            date: info.start.toISOString().split('T')[0],
+                            time: info.start.toTimeString().substring(0, 8),
                             professional_id: professionalId
                         })
                     })
@@ -103,116 +130,132 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('Error:', error);
                     });
                 }
-   
-                    } else if (userRole === 'professional') {
-                        if (confirm(`Set availability from ${info.startStr} to ${info.endStr}?`)) {
-                            fetch('{% url "save_availability" %}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': getCookie('csrftoken')
-                                },
-                                body: JSON.stringify({
-                                    day_of_week: info.start.toLocaleString('en-US', { weekday: 'long' }),
-                                    start_time: info.start.toLocaleTimeString('en-US', {hour12: false}),
-                                    end_time: info.end.toLocaleTimeString('en-US', {hour12: false})
-                                })
-                            })
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data.error) {
-                                    alert(data.error);
-                                } else {
-                                    alert('Availability saved successfully!');
-                                    calendar.refetchEvents();
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                alert('Failed to save availability');
-                            });
+            } else if (userRole === 'professional') {
+                if (confirm(`Set availability from ${info.startStr} to ${info.endStr}?`)) {
+                    fetch('{% url "save_availability" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            day_of_week: info.start.toLocaleString('en-US', { weekday: 'long' }),
+                            start_time: info.start.toLocaleTimeString('en-US', {hour12: false}),
+                            end_time: info.end.toLocaleTimeString('en-US', {hour12: false})
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(data.error);
+                        } else {
+                            alert('Availability saved successfully!');
+                            calendar.refetchEvents();
                         }
-                    }
-                    calendar.unselect();
-                },
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Failed to save availability');
+                    });
+                }
+            }
+            calendar.unselect();
+        },
 
         eventClick: function(info) {
             const event = info.event;
             const isPatient = userRole === 'patient';
             const isProfessional = userRole === 'professional';
-            const canReschedule = ['pending', 'approved'].includes(event.extendedProps.status);
+            // Only show reschedule options if status allows and it's not a completed/cancelled appointment
+            const canReschedule = event.extendedProps.type === 'appointment' && ['pending', 'approved'].includes(event.extendedProps.status);
             
-            modalContent.innerHTML = `
-                <h3>Appointment Details</h3>
-                <p><strong>With:</strong> ${event.title}</p>
-                <p><strong>Date:</strong> ${event.start.toLocaleString()}</p>
-                <p><strong>Status:</strong> ${event.extendedProps.status}</p>
-                ${event.extendedProps.notes ? `<p><strong>Notes:</strong> ${event.extendedProps.notes}</p>` : ''}
-                
-                ${event.extendedProps.reschedule_status ? `
-                <div class="reschedule-info">
-                    <p><strong>Reschedule Status:</strong> ${event.extendedProps.reschedule_status}</p>
-                    ${event.extendedProps.reschedule_request_date ? `<p><strong>Requested New Time:</strong> ${new Date(event.extendedProps.reschedule_request_date + 'T' + event.extendedProps.reschedule_request_time).toLocaleString()}</p>` : ''}
-                    ${event.extendedProps.reschedule_reason ? `<p><strong>Reschedule Reason:</strong> ${event.extendedProps.reschedule_reason}</p>` : ''}
-                </div>
-                ` : ''}
-                
-                ${canReschedule ? `
-                <div class="reschedule-section">
-                    <h4>Reschedule Appointment</h4>
-                    <div class="form-group">
-                        <label for="rescheduleDate">New Date:</label>
-                        <input type="date" id="rescheduleDate" value="${event.start.toISOString().split('T')[0]}">
-                    </div>
-                    <div class="form-group">
-                        <label for="rescheduleTime">New Time:</label>
-                        <input type="time" id="rescheduleTime" value="${event.start.toTimeString().substring(0, 5)}">
-                    </div>
-                    ${isPatient ? `
-                    <div class="form-group">
-                        <label for="rescheduleReason">Reason:</label>
-                        <textarea id="rescheduleReason" placeholder="Optional reason for rescheduling"></textarea>
+            // Build modal content dynamically based on event type
+            let modalHtml = '';
+            if (event.extendedProps.type === 'appointment') {
+                modalHtml = `
+                    <h3>Appointment Details</h3>
+                    <p><strong>With:</strong> ${event.title}</p>
+                    <p><strong>Date:</strong> ${event.start.toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${event.extendedProps.status}</p>
+                    ${event.extendedProps.notes ? `<p><strong>Notes:</strong> ${event.extendedProps.notes}</p>` : ''}
+                    
+                    ${event.extendedProps.reschedule_status ? `
+                    <div class="reschedule-info">
+                        <h4>Reschedule Request Details</h4>
+                        <p><strong>Reschedule Status:</strong> ${event.extendedProps.reschedule_status}</p>
+                        ${event.extendedProps.reschedule_request_date ? `<p><strong>Requested New Time:</strong> ${new Date(event.extendedProps.reschedule_request_date + 'T' + event.extendedProps.reschedule_request_time).toLocaleString()}</p>` : ''}
+                        ${event.extendedProps.reschedule_reason ? `<p><strong>Reschedule Reason:</strong> ${event.extendedProps.reschedule_reason}</p>` : ''}
                     </div>
                     ` : ''}
-                </div>
-                ` : ''}
-                
-                <div id="actionButtons"></div>
-            `;
-            
+                    
+                    ${canReschedule ? `
+                    <div class="reschedule-section">
+                        <h4>Reschedule Appointment</h4>
+                        <div class="form-group">
+                            <label for="rescheduleDate">New Date:</label>
+                            <input type="date" id="rescheduleDate" value="${event.start.toISOString().split('T')[0]}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rescheduleTime">New Time:</label>
+                            <input type="time" id="rescheduleTime" value="${event.start.toTimeString().substring(0, 5)}">
+                        </div>
+                        ${isPatient ? `
+                        <div class="form-group">
+                            <label for="rescheduleReason">Reason:</label>
+                            <textarea id="rescheduleReason" placeholder="Optional reason for rescheduling"></textarea>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                    
+                    <div id="actionButtons"></div>
+                `;
+            } else if (event.extendedProps.type === 'availability') {
+                modalHtml = `
+                    <h3>Availability Details</h3>
+                    <p><strong>Day:</strong> ${event.extendedProps.day_of_week}</p>
+                    <p><strong>Time:</strong> ${event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${event.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <div id="actionButtons"></div>
+                `;
+            }
+
+
+            modalContent.innerHTML = modalHtml;
             
             const actionButtons = document.getElementById('actionButtons');
-            if (isProfessional) {
-                if (event.extendedProps.status === 'pending') {
-                    actionButtons.innerHTML = `
-                        <button onclick="handleAppointmentAction('${event.id}', 'approve')" class="btn btn-success">Approve</button>
-                        <button onclick="handleAppointmentAction('${event.id}', 'reject')" class="btn btn-danger">Reject</button>
-                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
-                    `;
-                } else if (event.extendedProps.status === 'approved') {
-                    actionButtons.innerHTML = `
-                        <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
-                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
-                    `;
-                }
-                
-                if (event.extendedProps.reschedule_status === 'pending') {
-                    actionButtons.innerHTML += `
-                        <button onclick="handleRescheduleAction('${event.id}', 'approve')" class="btn btn-success">Approve Reschedule</button>
-                        <button onclick="handleRescheduleAction('${event.id}', 'reject')" class="btn btn-danger">Reject Reschedule</button>
-                    `;
-                }
-            } else if (isPatient) {
-                if (event.extendedProps.status === 'pending') {
-                    actionButtons.innerHTML = `
-                        <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
-                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', true)" class="btn btn-warning">Request Reschedule</button>` : ''}
-                    `;
-                } else if (event.extendedProps.status === 'approved') {
-                    actionButtons.innerHTML = `
-                        <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
-                        ${canReschedule ? `<button onclick="handleReschedule('${event.id}', true)" class="btn btn-warning">Request Reschedule</button>` : ''}
-                    `;
+            if (actionButtons) { // Ensure actionButtons div exists before adding content
+                if (event.extendedProps.type === 'appointment') {
+                    if (isProfessional) {
+                        if (event.extendedProps.status === 'pending') {
+                            actionButtons.innerHTML = `
+                                <button onclick="handleAppointmentAction('${event.id}', 'approve')" class="btn btn-success">Approve</button>
+                                <button onclick="handleAppointmentAction('${event.id}', 'reject')" class="btn btn-danger">Reject</button>
+                                ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
+                            `;
+                        } else if (event.extendedProps.status === 'approved') {
+                            actionButtons.innerHTML = `
+                                <button onclick="handleAppointmentAction('${event.id}', 'complete')" class="btn btn-primary">Complete</button>
+                                ${canReschedule ? `<button onclick="handleReschedule('${event.id}', false)" class="btn btn-warning">Reschedule</button>` : ''}
+                            `;
+                        }
+                        
+                        if (event.extendedProps.reschedule_status === 'pending') {
+                            actionButtons.innerHTML += `
+                                <button onclick="handleRescheduleAction('${event.id}', 'approve')" class="btn btn-success">Approve Reschedule</button>
+                                <button onclick="handleRescheduleAction('${event.id}', 'reject')" class="btn btn-danger">Reject Reschedule</button>
+                            `;
+                        }
+                    } else if (isPatient) {
+                        if (event.extendedProps.status === 'pending' || event.extendedProps.status === 'approved') {
+                            actionButtons.innerHTML = `
+                                <button onclick="handleAppointmentAction('${event.id}', 'cancel')" class="btn btn-danger">Cancel</button>
+                                ${canReschedule ? `<button onclick="handleReschedule('${event.id}', true)" class="btn btn-warning">Request Reschedule</button>` : ''}
+                            `;
+                        }
+                    }
+                } else if (event.extendedProps.type === 'availability' && isProfessional) {
+                     // Add actions for availability if needed, e.g., delete availability
+                     // actionButtons.innerHTML = `<button onclick="deleteAvailability('${event.id}')" class="btn btn-danger">Delete Availability</button>`;
                 }
             }
             modal.style.display = 'block';
@@ -222,36 +265,56 @@ document.addEventListener('DOMContentLoaded', function() {
             let url = '{% url "calendar_data" %}';
             if (userRole === 'patient') {
                 const select = document.getElementById("professionalSelect");
-                if (select && select.value) {
-                    url += `?professional_id=${select.value}`;
+                if (select) {
+                    const professionalIdValue = select.value;
+                    // Only append professional_id if a specific professional is selected (not 'all' or empty)
+                    if (professionalIdValue && professionalIdValue !== 'all') {
+                        url += `?professional_id=${professionalIdValue}`;
+                    } else if (professionalIdValue === 'all') {
+                         url += '?professional_id=all'; // Ensure 'all' is explicitly sent if selected
+                    }
                 }
             }
 
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; });
+                    }
+                    return response.json();
+                })
                 .then(events => {
                     const processedEvents = events.map(event => {
-                        if (event.status) {
-                            event.className = `fc-event-${event.status}`;
+                        // Apply styling classes based on event type or status
+                        if (event.extendedProps && event.extendedProps.type === 'appointment') {
+                            event.className = `fc-event-appointment fc-event-${event.extendedProps.status}`;
+                        } else if (event.extendedProps && event.extendedProps.type === 'availability') {
+                             event.className = `fc-event-availability`;
                         }
                         return event;
                     });
                     successCallback(processedEvents);
                 })
-                .catch(error => failureCallback(error));
+                .catch(error => {
+                    console.error("Error fetching calendar data:", error);
+                    failureCallback(error);
+                });
         }
     });
 
     calendar.render();
 
     if (userRole === 'patient') {
-        document.getElementById("professionalSelect").addEventListener('change', function() {
-            calendar.refetchEvents();
-        });
+        const professionalSelect = document.getElementById("professionalSelect");
+        if (professionalSelect && professionalSelect.tagName === 'SELECT') { // Only add listener to SELECT elements
+            professionalSelect.addEventListener('change', function() {
+                calendar.refetchEvents();
+            });
+        }
     }
 });
 
-// Handle appointment status changes (approve, reject, complete, cancel)
+// Handle appointment status changes
 window.handleAppointmentAction = function(appointmentId, action) {
     const statusMap = {
         'approve': 'approved',
@@ -271,14 +334,24 @@ window.handleAppointmentAction = function(appointmentId, action) {
             status: statusMap[action]
         })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw err; });
+        }
+        return res.json();
+    })
     .then(data => {
         alert(data.message || data.error);
         document.getElementById('appointmentModal').style.display = 'none';
+        // Get the calendar instance directly from the element if it's stored there
         const calendarEl = document.getElementById('calendar');
-        if (calendarEl && calendarEl.__fullCalendar) {
-            calendarEl.__fullCalendar.refetchEvents();
+        if (calendarEl && calendarEl.fullCalendar) { // Use .fullCalendar property
+            calendarEl.fullCalendar.refetchEvents();
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert(error.message || 'Failed to update appointment status');
     });
 };
 
@@ -307,7 +380,12 @@ window.handleReschedule = function(appointmentId, isRequest) {
             is_request: isRequest
         })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw err; });
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.error) {
             alert(data.error);
@@ -315,8 +393,8 @@ window.handleReschedule = function(appointmentId, isRequest) {
             alert(data.message);
             document.getElementById('appointmentModal').style.display = 'none';
             const calendarEl = document.getElementById('calendar');
-            if (calendarEl && calendarEl.__fullCalendar) {
-                calendarEl.__fullCalendar.refetchEvents();
+            if (calendarEl && calendarEl.fullCalendar) {
+                calendarEl.fullCalendar.refetchEvents();
             }
         }
     })
@@ -328,7 +406,7 @@ window.handleReschedule = function(appointmentId, isRequest) {
 
 // Handle professional approval/rejection of reschedule requests
 window.handleRescheduleAction = function(appointmentId, action) {
-    fetch('{% url "reschedule_appointment" %}', {
+    fetch('{% url "reschedule_appointment" %}', { // Using the same URL, backend should differentiate by payload
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -336,10 +414,15 @@ window.handleRescheduleAction = function(appointmentId, action) {
         },
         body: JSON.stringify({
             appointment_id: appointmentId,
-            reschedule_action: action
+            reschedule_action: action // This field indicates approval/rejection of a request
         })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw err; });
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.error) {
             alert(data.error);
@@ -347,8 +430,8 @@ window.handleRescheduleAction = function(appointmentId, action) {
             alert(data.message);
             document.getElementById('appointmentModal').style.display = 'none';
             const calendarEl = document.getElementById('calendar');
-            if (calendarEl && calendarEl.__fullCalendar) {
-                calendarEl.__fullCalendar.refetchEvents();
+            if (calendarEl && calendarEl.fullCalendar) {
+                calendarEl.fullCalendar.refetchEvents();
             }
         }
     })
@@ -364,7 +447,6 @@ function getCookie(name) {
         const cookies = document.cookie.split(';');
         for (let i = 0; i < cookies.length; i++) {
             const cookie = cookies[i].trim();
-            // Does this cookie string begin with the name we want?
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -373,6 +455,5 @@ function getCookie(name) {
     }
     return cookieValue;
 }
-
 </script>
 {% endblock %}

@@ -175,20 +175,16 @@ def my_professional_view(request):
     if request.user.userprofile.role != 'patient':
         raise PermissionDenied
 
-    relationship = PatientProfessionalRelationship.objects.filter(
-        patient=request.user
-    ).select_related('professional').first()
-
-    professional_profile = None
-    if relationship:
-        professional_profile = MentalHealthProfessional.objects.filter(
-            user=relationship.professional
-        ).first()
+    relationships = PatientProfessionalRelationship.objects.filter(
+        patient=request.user,
+        status='accepted'
+    ).select_related('professional')
 
     return render(request, 'profiles/professional_profile_preview.html', {
-        'professional': professional_profile,
-        'relationship': relationship,
+        'relationships': relationships,
     })
+
+
 
 
 @login_required

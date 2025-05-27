@@ -1,67 +1,69 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+<nav class="navbar navbar-expand-lg navbar-light sticky-top" style="background-color: #e0f7f1;">
   <div class="container-fluid">
     <a class="navbar-brand" href="{% url 'home' %}">WellNest</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-      
         {% if user.is_authenticated %}
           {% if user.userprofile.role == "professional" %}
               <li class="nav-item">
-                  <a class="nav-link {% if request.resolver_match.url_name == 'professional_dashboard' %}active{% endif %}" href="{% url 'professional_dashboard' %}">Professional Dashboard</a>
+                  <a class="nav-link {% if request.resolver_match.url_name == 'professional_dashboard' %}active{% endif %}" 
+                     href="{% url 'professional_dashboard' %}">Professional Dashboard</a>
               </li>
-              
               <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" href="{% url 'calendar_view' %}">Calendar</a>
-            </li>
-            
+                  <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" 
+                     href="{% url 'calendar_view' %}">Calendar</a>
+              </li>
           {% elif user.userprofile.role == "patient" %}
               <li class="nav-item">
-                  <a class="nav-link {% if request.resolver_match.url_name == 'patient_dashboard' %}active{% endif %}" href="{% url 'patient_dashboard' %}">Patient Dashboard</a>
+                  <a class="nav-link {% if request.resolver_match.url_name == 'patient_dashboard' %}active{% endif %}" 
+                     href="{% url 'patient_dashboard' %}">Patient Dashboard</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'mood_report' %}active{% endif %}" href="{% url 'mood_report' %}">Mood Report</a>
+                  <a class="nav-link {% if request.resolver_match.url_name == 'mood_report' %}active{% endif %}" 
+                     href="{% url 'mood_report' %}">Mood Report</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'mood_history' %}active{% endif %}" href="{% url 'mood_history' %}">Mood History</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" href="{% url 'calendar_view' %}">Calendar</a>
-            </li>
-          
+                  <a class="nav-link {% if request.resolver_match.url_name == 'mood_history' %}active{% endif %}" 
+                     href="{% url 'mood_history' %}">Mood History</a>
+              </li>
+              <li class="nav-item">
+                  <a class="nav-link {% if request.resolver_match.url_name == 'calendar_view' %}active{% endif %}" 
+                     href="{% url 'calendar_view' %}">Calendar</a>
+              </li>
           {% endif %}
-          
         {% endif %}
       </ul>
 
       <ul class="navbar-nav ms-auto">
         {% if user.is_authenticated %}
-        {% if user.userprofile.role == "professional" %}
-          <li class="nav-item">
-            <a class="nav-link {% if request.resolver_match.url_name == 'profile_preview' %}active{% endif %}" href="{% url 'profile_preview' %}">You</a>
-          </li>
-        {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'profile_summary_view' %}">You</a>
-          </li>
-        {% endif %}
-        
+          {% if user.userprofile.role == "professional" %}
+            <li class="nav-item">
+              <a class="nav-link {% if request.resolver_match.url_name == 'profile_preview' %}active{% endif %}" 
+                 href="{% url 'profile_preview' %}">You</a>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'profile_summary_view' %}">You</a>
+            </li>
+          {% endif %}
           <li class="nav-item">
               <a class="nav-link" href="{% url 'logout' %}">Logout</a>
           </li>
-          
         {% else %}
           <li class="nav-item">
-            <a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" href="{% url 'register' %}">Register</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" 
+               href="{% url 'register' %}">Register</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" 
+               href="{% url 'login' %}">Login</a>
           </li>
         {% endif %}
-        
       </ul>
     </div>
   </div>

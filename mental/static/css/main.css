@@ -1,3 +1,142 @@
+
+:root {
+    --teal: #4db6ac;
+    --lavender: #b39ddb;
+    --coral: #ff8a65;
+    --background-hero: #2c3e50; /* Deep calming blue */
+    --background-footer: #34495e;
+    --text-muted: #6c757d;
+
+}/* Custom Navbar Styling */
+.custom-navbar {
+    background-color: #4b0082; /* Indigo */
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .custom-navbar .navbar-brand {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 1.5rem;
+  }
+  
+  .custom-navbar .nav-link {
+    color: #ffffff !important;
+    transition: color 0.3s ease;
+  }
+  
+  .custom-navbar .nav-link.active,
+  .custom-navbar .nav-link:hover {
+    color: #ffd700 !important; /* Soft yellow highlight */
+    font-weight: 500;
+  }
+  
+  .custom-navbar .nav-item .nav-link {
+    margin-right: 1rem;
+  }
+  
+  .custom-navbar .navbar-toggler {
+    border-color: #ffffff;
+  }
+  
+  .custom-navbar .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 1%29)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  }
+  
+
+/* Mental Health Friendly Color Palette */
+:root {
+    --serene-blue: #8fb8de;
+    --calm-teal: #5eb8b3;
+    --peaceful-lavender: #b8b8f3;
+    --warm-sand: #f7dba7;
+    --soft-green: #a8d5ba;
+    --deep-blue: #3a5a78;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Nunito', sans-serif;
+}
+
+.wellness-card {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+    height: 100%;
+}
+
+.wellness-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-bottom: none;
+    padding: 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.wellness-btn {
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border-width: 2px;
+}
+
+.mood-card {
+    background: linear-gradient(135deg, var(--serene-blue), var(--calm-teal));
+    color: white;
+}
+
+.journal-card {
+    background: linear-gradient(135deg, var(--soft-green), #8fd8a0);
+    color: white;
+}
+
+.professional-card {
+    background: linear-gradient(135deg, var(--peaceful-lavender), #a5a5f7);
+    color: white;
+}
+
+.dashboard-title {
+    color: var(--deep-blue);
+    font-weight: 700;
+    margin-bottom: 2.5rem;
+    position: relative;
+}
+
+.dashboard-title:after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background: var(--calm-teal);
+    margin: 15px auto 0;
+    border-radius: 2px;
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.card-text {
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.wellness-container {
+    max-width: 1200px;
+    padding: 2rem 1rem;
+}
+
 /* Profile Summary Styles */
 .profile-summary {
     max-width: 800px;
@@ -353,6 +492,8 @@
 .close:hover {
     color: black;
 }
+
+
 .fc-event-pending {
     background-color: #f0ad4e !important; /* orange for pending */
 }

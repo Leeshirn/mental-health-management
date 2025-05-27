@@ -1,5 +1,5 @@
 import json
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404 
 from django.contrib.auth import authenticate,login, logout 
 from django.contrib.auth.decorators import login_required
@@ -103,32 +103,40 @@ def view_professional_profile(request, professional_id):
     return render(request, 'profiles/professional_profile_preview.html', context)
 
 
+# In your views.py (or wherever calendar_view is located)
+
 @login_required
 def calendar_view(request):
-    user_profile = UserProfile.objects.get(user=request.user)
+    user_profile = request.user.userprofile
+    connected_professionals = []
 
-    if user_profile.role == 'professional':
-        appointments = Appointment.objects.filter(professional=request.user)
-        connected_professionals = []
-    elif user_profile.role == 'patient':
-        appointments = Appointment.objects.filter(patient=request.user)
-        connected_ids = PatientProfessionalRelationship.objects.filter(
-            patient=user_profile.user,
-            status='approved'
-        ).values_list('professional_id', flat=True)
+    if user_profile.role == 'patient':
+        # Corrected query using the 'patients' related_name
+        # This filters User objects where the user is the 'professional' in
+        # a PatientProfessionalRelationship where the 'patient' is the request.user
+        # and the status is 'accepted'.
+        connected_professionals = User.objects.filter(
+            patients__patient=request.user, # Use 'patients' as the reverse accessor for the professional
+            patients__status='accepted'
+        ).distinct() # Use .distinct() to avoid duplicate User objects if a patient has multiple relationships with the same professional (though unique_together prevents this, it's good practice for reverse lookups)
 
-        connected_professionals = User.objects.filter(id__in=connected_ids)
-    else:
-        appointments = []
-        connected_professionals = []
+        print(f"DEBUG (calendar_view): connected_professionals count: {connected_professionals.count()}")
+        for prof in connected_professionals:
+            print(f"DEBUG (calendar_view): Connected professional: {prof.username} (ID: {prof.id})")
 
-    
-    return render(request, 'professionals/calendar.html', {
-        'appointments': appointments,
+    elif user_profile.role == 'professional':
+        # Professionals don't "connect" to other professionals in this context,
+        # so this list would likely be empty or contain themselves if needed for display.
+        # For a professional's calendar, you typically show their own availabilities/appointments.
+        # This part of the code might not need 'connected_professionals'
+        # if the calendar directly uses their own ID.
+        pass # Or set connected_professionals = [request.user] if you want them to see their own name in the dropdown.
+
+    context = {
         'user_profile': user_profile,
-        'connected_professionals': connected_professionals
-    })
-
+        'connected_professionals': connected_professionals,
+    }
+    return render(request, 'professionals/calendar.html', context)
 @csrf_exempt
 @login_required
 def create_from_calendar(request):
@@ -154,7 +162,7 @@ def create_from_calendar(request):
             is_connected = PatientProfessionalRelationship.objects.filter(
                 patient=request.user,
                 professional=professional,
-                status='approved'
+                status='accepted'
             ).exists()
             
             if not is_connected:
@@ -177,7 +185,7 @@ def create_from_calendar(request):
                 professional=professional,
                 date=appt_date,
                 time=appt_time,
-                status__in=['pending', 'approved']
+                status__in=['pending', 'accepted']
             ).exists()
 
             if existing_appt:
@@ -203,25 +211,36 @@ def calendar_data(request):
     professional_id = request.GET.get('professional_id')
     events = []
 
-    # PATIENT ROLE
-    if user_profile.role == 'patient' and professional_id:
-        try:
-            professional = User.objects.get(id=professional_id)
-        except User.DoesNotExist:
-            return JsonResponse([], safe=False)
-
-        # ✅ Ensure patient is connected to this professional
-        is_connected = PatientProfessionalRelationship.objects.filter(
+    # PATIENT ROLE - Only show connected professionals
+    if user_profile.role == 'patient':
+        relationships = PatientProfessionalRelationship.objects.filter(
             patient=user,
-            professional=professional,
-            status='approved'
-        ).exists()
+            status='accepted'
+        ).select_related('professional')
 
-        if not is_connected:
-            return HttpResponseForbidden("You are not connected to this professional.")
+        if not relationships.exists():
+            return JsonResponse([], safe=False)  # No professionals? Return empty.
 
-        appointments = Appointment.objects.filter(professional=professional, patient=user)
-        availabilities = Availability.objects.filter(professional=professional)
+        # If "all" is requested, show all connected professionals
+        if professional_id == 'all':
+            professional_ids = [rel.professional.id for rel in relationships]
+            appointments = Appointment.objects.filter(professional__id__in=professional_ids, patient=user)
+            availabilities = Availability.objects.filter(professional__id__in=professional_ids)
+
+        # If a specific professional is selected, verify they are connected
+        elif professional_id:
+            professional = get_object_or_404(User, id=professional_id)
+            if not relationships.filter(professional=professional).exists():
+                return HttpResponseForbidden("Not connected to this professional.")
+            
+            appointments = Appointment.objects.filter(professional=professional, patient=user)
+            availabilities = Availability.objects.filter(professional=professional)
+        
+        # Default case (no professional_id): Show all connected professionals
+        else:
+            professional_ids = [rel.professional.id for rel in relationships]
+            appointments = Appointment.objects.filter(professional__id__in=professional_ids, patient=user)
+            availabilities = Availability.objects.filter(professional__id__in=professional_ids)
 
     # PROFESSIONAL ROLE
     elif user_profile.role == 'professional':

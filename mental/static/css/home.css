@@ -1,38 +1,93 @@
-/* Hero Section */
-.hero-section {
-    background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.6)), url('https://source.unsplash.com/1600x900/?meditation,mental-health');
-    background-size: cover;
-    background-position: center;
-    padding: 100px 20px;
+/* Colors */
+:root {
+    --teal: #4db6ac;
+    --lavender: #b39ddb;
+    --coral: #ff8a65;
+    --background-hero: #2c3e50; /* Deep calming blue */
+    --background-footer: #34495e;
+    --text-muted: #6c757d;
 }
 
-/* Features Section */
+/* Hero Section */
+.hero-section {
+    background-color: var(--background-hero);
+    background-image: linear-gradient(rgba(44, 62, 80, 0.85), rgba(44, 62, 80, 0.85));
+    /* Optional: subtle background image or gradient */
+    padding: 6rem 1rem;
+}
+
+/* Button Styles */
+.btn-teal {
+    background-color: var(--teal);
+    border: none;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.btn-teal:hover,
+.btn-teal:focus {
+    background-color: #399487;
+    color: white;
+}
+
+.btn-outline-teal {
+    background-color: transparent;
+    border: 2px solid var(--teal);
+    color: var(--teal);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.btn-outline-teal:hover,
+.btn-outline-teal:focus {
+    background-color: var(--teal);
+    color: white;
+}
+
+/* Feature Cards */
 .feature-card {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    transition: 0.3s;
+    padding: 2rem 1rem;
+    border-radius: 12px;
+    background-color: #f9fafa;
+    box-shadow: 0 4px 8px rgba(77, 182, 172, 0.2);
+    transition: box-shadow 0.3s ease;
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 16px rgba(77, 182, 172, 0.4);
+}
+
+/* Icon Colors */
+.text-teal {
+    color: var(--teal) !important;
+}
+
+.text-lavender {
+    color: var(--lavender) !important;
+}
+
+.text-coral {
+    color: var(--coral) !important;
 }
 
 /* Testimonials */
 .testimonial-card {
-    border-left: 4px solid #007bff;
-    background: #fff;
-    padding: 20px;
-    transition: 0.3s;
+    border-radius: 10px;
+    background-color: #fff;
 }
 
-.testimonial-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+.text-muted {
+    color: var(--text-muted) !important;
 }
 
 /* Footer */
 .footer-section {
-    background: #343a40;
+    background-color: var(--background-footer);
+    font-size: 0.9rem;
+}
+
+/* Responsive tweaks (optional) */
+@media (max-width: 576px) {
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
 }

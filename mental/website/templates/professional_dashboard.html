@@ -1,20 +1,230 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>Professional Dashboard</h2>
+<style>
+    /* Professional Dashboard - Enhanced Design */
+    .professional-dashboard {
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f5 100%);
+        min-height: calc(100vh - 120px);
+        padding: 3rem 2rem;
+    }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(58, 90, 120, 0.08);
+        padding: 2.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .dashboard-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 8px;
+        background: linear-gradient(90deg, #5eb8b3 0%, #8fb8de 50%, #b8b8f3 100%);
+    }
+    
+    h2.dashboard-title {
+        color: #3a5a78;
+        font-weight: 700;
+        font-size: 2.2rem;
+        margin-bottom: 1.8rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    h2.dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 60%;
+        height: 4px;
+        background: linear-gradient(90deg, #5eb8b3 0%, #8fb8de 100%);
+        border-radius: 2px;
+    }
+    
+    .alert-warning {
+        background: rgba(255, 193, 7, 0.15);
+        border-left: 4px solid #ffb74d;
+        color: #5d4037;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .welcome-section {
+        background: linear-gradient(135deg, rgba(143, 184, 222, 0.1) 0%, rgba(94, 184, 179, 0.1) 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .welcome-section::before {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(184, 184, 243, 0.1) 0%, rgba(184, 184, 243, 0) 70%);
+        z-index: 0;
+    }
+    
+    .welcome-text {
+        font-size: 1.2rem;
+        color: #4a6572;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .welcome-text strong {
+        color: #3a5a78;
+        font-weight: 600;
+    }
+    
+    .action-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .action-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(143, 184, 222, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(58, 90, 120, 0.1);
+        border-color: rgba(143, 184, 222, 0.6);
+    }
+    
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, #5eb8b3 0%, #8fb8de 100%);
+    }
+    
+    .action-card h3 {
+        color: #3a5a78;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    
+    .action-card p {
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .action-card .btn {
+        border-radius: 50px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 500;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .patients-btn {
+        background-color: #5eb8b3;
+    }
+    
+    .schedule-btn {
+        background-color: #8fb8de;
+    }
+    
+    .profile-btn {
+        background-color: #b8b8f3;
+    }
+    
+    .requests-btn {
+        background-color: #f7dba7;
+        color: #5d4037;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-card {
+            padding: 1.5rem;
+        }
+        
+        .action-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
-    {% if not user.userprofile.is_verified %}
-        <div class="alert alert-warning">
-            Your account is awaiting admin approval. You cannot access professional features yet.
-        </div>
-    {% else %}
-        <p>Welcome, {{ user.first_name }}! You can now manage your patients and schedule.</p>
+<div class="professional-dashboard">
+    <div class="dashboard-card">
+        <h2 class="dashboard-title">Professional Dashboard</h2>
 
-        <div class="dashboard-buttons">
-            <a href="{% url 'professional_patient_dashboard' %}" class="btn btn-primary">Manage Patients</a>
-            <a href="{% url 'calendar_view' %}" class="btn btn-primary">View Schedule</a>
-            <a href="{% url 'profile_preview' %}" class="btn btn-secondary">View My Profile</a>
-            <a href="{% url 'pending_requests' %}" class="btn btn-info">Connection Requests</a>
-            
-        </div>
-    {% endif %}
+        {% if not user.userprofile.is_verified %}
+            <div class="alert-warning">
+                <i class="fas fa-clock fa-lg" style="color: #ffb74d;"></i>
+                <div>
+                    <strong>Account Pending Approval</strong>
+                    <p class="mb-0">Your professional account is under review. You'll gain full access once approved by our team.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="welcome-section">
+                <p class="welcome-text">
+                    Welcome back, <strong>Dr. {{ user.first_name }}</strong>! You can check your pending requests and manage your appointments
+                </p>
+            </div>
+
+            <div class="action-cards">
+                <div class="action-card">
+                    <h3><i class="fas fa-users" style="color: #5eb8b3;"></i> Patient Management</h3>
+                    <p>View and manage your current patients, treatment plans, and progress notes.</p>
+                    <a href="{% url 'professional_patient_dashboard' %}" class="btn patients-btn">Manage Patients</a>
+                </div>
+                
+                <div class="action-card">
+                    <h3><i class="fas fa-calendar-alt" style="color: #8fb8de;"></i> Schedule</h3>
+                    <p>Review your upcoming appointments and manage your availability.</p>
+                    <a href="{% url 'calendar_view' %}" class="btn schedule-btn">View Schedule</a>
+                </div>
+                
+                <div class="action-card">
+                    <h3><i class="fas fa-user" style="color: #b8b8f3;"></i> Professional Profile</h3>
+                    <p>Update your profile information and practice details visible to patients.</p>
+                    <a href="{% url 'profile_preview' %}" class="btn profile-btn">View Profile</a>
+                </div>
+                
+                <div class="action-card">
+                    <h3><i class="fas fa-user-plus" style="color: #f7dba7;"></i> Connections</h3>
+                    <p>Review and respond to new patient connection requests.</p>
+                    <a href="{% url 'pending_requests' %}" class="btn requests-btn">Manage Requests</a>
+                </div>
+                
+                
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

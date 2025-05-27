@@ -2,80 +2,120 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Privacy Settings</h2>
-    
-    {% if relationships %}
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h3>Your Connected Professionals</h3>
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Privacy Settings</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Manage which professionals can access your data and what information they can see.</p>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Professional</th>
-                        <th>Profession</th>
-                        <th>Mood Access</th>
-                        <th>Journal Access</th>
-                        <th>Access Level</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rel in relationships %}
-                    <tr>
-                        <td>{{ rel.professional.get_full_name }}</td>
-                        <td>{{ rel.professional.mental_health_pro.get_profession_display }}</td>
-                        <td>{{ rel.access_mood|yesno:"Yes,No" }}</td>
-                        <td>{{ rel.access_journal|yesno:"Yes,No" }}</td>
-                        <td>{{ rel.get_journal_access_level_display }}</td>
-                        
-                        <td>
-                            <a href="{% url 'update_consent' rel.id %}" class="btn btn-sm btn-primary">
-                                Edit Permissions
-                            </a>
-                        </td>
-                    </tr>
-                    <a href="{% url 'shared_notes_view' rel.id %}" class="btn btn-sm btn-warning">Notes</a>
-                    {% endfor %}
-                </tbody>
-            </table>
+    </div>
+
+    {% if relationships %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Your Connected Professionals</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Professional</th>
+                                    <th>Profession</th>
+                                    <th>Mood Access</th>
+                                    <th>Journal Access</th>
+                                    <th>Access Level</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rel in relationships %}
+                                <tr>
+                                    <td>{{ rel.professional.get_full_name }}</td>
+                                    <td>{{ rel.professional.mental_health_pro.get_profession_display }}</td>
+                                    <td><span class="badge badge-{{ rel.access_mood|yesno:'success,danger' }}">{{ rel.access_mood|yesno:"Yes,No" }}</span></td>
+                                    <td><span class="badge badge-{{ rel.access_journal|yesno:'success,danger' }}">{{ rel.access_journal|yesno:"Yes,No" }}</span></td>
+                                    <td><span class="badge badge-info">{{ rel.get_journal_access_level_display }}</span></td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'update_consent' rel.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <a href="{% url 'shared_notes_view' rel.id %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-sticky-note"></i> Notes
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     {% endif %}
 
     {% if professionals %}
-    <div class="card">
-        <div class="card-header bg-info text-white">
-            <h3>Available Professionals</h3>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                {% for professional in professionals %}
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ professional.get_full_name }}</h5>
-                            <p class="card-text">
-                                {{ professional.mental_health_pro.get_profession_display }}<br>
-                                {{ professional.mental_health_pro.years_of_experience }} years experience
-                            </p>
-                            <form method="post" action="{% url 'privacy_settings' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="professional_id" value="{{ professional.id }}">
-                                <button type="submit" class="btn btn-primary">Connect</button>
-                            </form>
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Available Professionals</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for professional in professionals %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-user-md fa-3x text-primary"></i>
+                                    </div>
+                                    <h5 class="card-title">{{ professional.get_full_name }}</h5>
+                                    <p class="card-text">
+                                        <strong>{{ professional.mental_health_pro.get_profession_display }}</strong><br>
+                                        {{ professional.mental_health_pro.years_of_experience }} years experience
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white">
+                                    <form method="post" action="{% url 'privacy_settings' %}" class="w-100">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="professional_id" value="{{ professional.id }}">
+                                        <button type="submit" class="btn btn-primary btn-block">
+                                            <i class="fas fa-link"></i> Connect
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
     {% elif not relationships %}
-    <div class="alert alert-info">
-        <h4>No Professionals Available</h4>
-        <p>There are currently no verified professionals in the system.</p>
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info shadow-sm">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-2x mr-3"></i>
+                    <div>
+                        <h4 class="alert-heading">No Professionals Available</h4>
+                        <p class="mb-0">There are currently no verified professionals in the system.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>
