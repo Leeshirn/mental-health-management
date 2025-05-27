@@ -1,92 +1,229 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-{% load static%}
-<link rel="stylesheet" href="{% static 'css/home.css' %}">
+<style>
+    /* Consistent with dashboard colors */
+    :root {
+        --serene-blue: #8fb8de;
+        --calm-teal: #5eb8b3;
+        --peaceful-lavender: #b8b8f3;
+        --warm-sand: #f7dba7;
+        --soft-green: #a8d5ba;
+        --deep-blue: #3a5a78;
+        --light-teal: #e0f2f1;
+    }
+    
+    .hero-section {
+        background: linear-gradient(135deg, var(--serene-blue), var(--calm-teal));
+        padding: 6rem 1rem;
+        border-radius: 0 0 30px 30px;
+        margin-bottom: 3rem;
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+        height: 100%;
+        border: 1px solid rgba(0,0,0,0.03);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, var(--calm-teal), var(--serene-blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .btn-teal {
+        background-color: var(--calm-teal);
+        border-color: var(--calm-teal);
+        color: white;
+        border-radius: 50px;
+        padding: 12px 30px;
+        font-weight: 600;
+    }
+    
+    .btn-outline-teal {
+        border-color: white;
+        color: white;
+        border-radius: 50px;
+        padding: 12px 30px;
+        font-weight: 600;
+        border-width: 2px;
+    }
+    
+    .btn-outline-teal:hover {
+        background-color: white;
+        color: var(--calm-teal);
+    }
+    
+    .wellness-wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        overflow: hidden;
+        line-height: 0;
+    }
+    
+    .wellness-wave svg {
+        position: relative;
+        display: block;
+        width: calc(100% + 1.3px);
+        height: 100px;
+    }
+    
+    .footer-section {
+        background-color: var(--deep-blue);
+        padding: 2rem 0;
+        margin-top: 4rem;
+    }
+    
+    .testimonial-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    
+    .cta-section {
+        background-color: var(--light-teal);
+        border-radius: 20px;
+        padding: 4rem 2rem;
+    }
+</style>
 
-<!-- Hero Section -->
-<div class="container-fluid hero-section text-white text-center py-5">
-    <h1 class="display-3 fw-bold">Your Mental Health Companion</h1>
-    <p class="lead">Track emotions, journal privately, and connect with professionals.</p>
-    {% if user.is_authenticated %}
-        <a href="{% url 'patient_dashboard' %}" class="btn btn-primary btn-lg mt-3 shadow-sm">Get Started</a>
-    {% else %}
-        <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg mt-3 shadow-sm">Join Now</a>
-    {% endif %}
+<!-- Hero Section with Wave -->
+<div class="hero-section position-relative text-white">
+    <div class="container">
+        <h1 class="display-3 fw-bold mb-4">Your Journey to Wellness Begins Here</h1>
+        <p class="lead fs-4 mb-5">A compassionate space to nurture your mental health with personalized tools and professional support</p>
+        {% if user.is_authenticated %}
+            <a href="{% url 'patient_dashboard' %}" class="btn btn-light btn-lg px-5 py-3 rounded-pill shadow-sm fw-bold">
+                Continue Your Journey <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        {% else %}
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="{% url 'register' %}" class="btn btn-light btn-lg px-5 py-3 rounded-pill shadow-sm fw-bold">
+                    Join Our Community
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill fw-bold">
+                    Sign In
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="wellness-wave">
+        <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="white"></path>
+            <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="white"></path>
+            <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="white"></path>
+        </svg>
+    </div>
 </div>
 
 <!-- Features Section -->
-<div class="container mt-5">
-    <h2 class="text-center mb-4 fw-bold">Features</h2>
-    <div class="row text-center">
-        <div class="col-md-4">
-            <div class="feature-card">
-                <i class="fas fa-smile-beam fa-4x text-primary"></i>
-                <h4 class="mt-3 fw-bold">Mood Tracking</h4>
-                <p>Monitor emotions and identify trends to improve well-being.</p>
+<div class="container my-5 py-5">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold mb-3" style="color: var(--deep-blue);">Your Wellness Toolkit</h2>
+        <p class="lead text-muted mx-auto" style="max-width: 700px;">
+            Designed with care to support your mental health journey every step of the way
+        </p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="feature-card h-100">
+                <div class="feature-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <h3 class="fw-bold mb-3" style="color: var(--calm-teal);">Mood Companion</h3>
+                <p class="text-muted">
+                    Track your emotional patterns with our intuitive mood tracker that helps you recognize trends and celebrate progress in your mental wellbeing journey.
+                </p>
+                <div class="mt-4">
+                    <span class="badge rounded-pill bg-light text-teal me-2">Daily Check-ins</span>
+                    <span class="badge rounded-pill bg-light text-teal">Visual Analytics</span>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="feature-card">
-                <i class="fas fa-book-open fa-4x text-success"></i>
-                <h4 class="mt-3 fw-bold">Private Journal</h4>
-                <p>Write freely with AI-generated prompts and sentiment insights.</p>
+        
+        <div class="col-lg-4">
+            <div class="feature-card h-100">
+                <div class="feature-icon">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h3 class="fw-bold mb-3" style="color: var(--peaceful-lavender);">Reflective Journal</h3>
+                <p class="text-muted">
+                    A safe, private space for self-expression with guided prompts and sentiment analysis to help you process thoughts and emotions.
+                </p>
+                <div class="mt-4">
+                    <span class="badge rounded-pill bg-light text-lavender me-2">AI Prompts</span>
+                    <span class="badge rounded-pill bg-light text-lavender">Encrypted</span>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="feature-card">
-                <i class="fas fa-user-md fa-4x text-warning"></i>
-                <h4 class="mt-3 fw-bold">Professional Support</h4>
-                <p>Connect with licensed professionals for guidance.</p>
+        
+        <div class="col-lg-4">
+            <div class="feature-card h-100">
+                <div class="feature-icon">
+                    <i class="fas fa-hands-helping"></i>
+                </div>
+                <h3 class="fw-bold mb-3" style="color: var(--soft-green);">Professional Network</h3>
+                <p class="text-muted">
+                    Connect with licensed mental health professionals who can provide personalized support and guidance when you need it most.
+                </p>
+                <div class="mt-4">
+                    <span class="badge rounded-pill bg-light text-green me-2">Secure Messaging</span>
+                    <span class="badge rounded-pill bg-light text-green">Video Sessions</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Testimonials Section -->
-<div class="container mt-5">
-    <h2 class="text-center fw-bold">What Our Users Say</h2>
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card testimonial-card shadow-sm">
-                <div class="card-body">
-                    <p class="text-muted">"This platform has changed how I understand my emotions!"</p>
-                    <h5 class="text-primary">- Alex</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card testimonial-card shadow-sm">
-                <div class="card-body">
-                    <p class="text-muted">"Tracking my mood daily has been a game-changer!"</p>
-                    <h5 class="text-success">- Jordan</h5>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card testimonial-card shadow-sm">
-                <div class="card-body">
-                    <p class="text-muted">"The AI-generated prompts help me reflect better!"</p>
-                    <h5 class="text-warning">- Casey</h5>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Call to Action -->
-<div class="container text-center my-5">
-    <h2 class="fw-bold">Ready to Begin Your Mental Wellness Journey?</h2>
-    {% if user.is_authenticated %}
-        <a href="{% url 'patient_dashboard' %}" class="btn btn-success btn-lg mt-3 shadow">Start Now</a>
-    {% else %}
-        <a href="{% url 'register' %}" class="btn btn-outline-success btn-lg mt-3 shadow">Join Now</a>
-    {% endif %}
+
+
+<!-- Final CTA Section -->
+<div class="cta-section my-5">
+    <div class="container text-center py-5">
+        <h2 class="display-5 fw-bold mb-4" style="color: var(--deep-blue);">Ready to Prioritize Your Mental Wellbeing?</h2>
+        <p class="lead mb-5 mx-auto" style="max-width: 600px;">
+            Take the first step towards a healthier mind. Our community is here to support you.
+        </p>
+        {% if user.is_authenticated %}
+            <a href="{% url 'patient_dashboard' %}" class="btn btn-teal btn-lg px-5 py-3 rounded-pill shadow fw-bold">
+                Continue Your Journey <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        {% else %}
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="{% url 'register' %}" class="btn btn-teal btn-lg px-5 py-3 rounded-pill shadow fw-bold">
+                    Join Now - It's Free
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-teal btn-lg px-5 py-3 rounded-pill fw-bold">
+                    Sign In
+                </a>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <!-- Footer -->
-<footer class="footer-section text-white text-center py-3">
-    <p>&copy; 2025 Mental Health Management System | All Rights Reserved</p>
+<footer >         
+        <div class="text-center pt-2">
+            <p class="mb-0">&copy; 2025 WellNest. All rights reserved.</p>
+        </div>
+    
 </footer>
-
 {% endblock %}
