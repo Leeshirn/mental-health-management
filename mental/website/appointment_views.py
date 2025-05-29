@@ -1,20 +1,20 @@
 import json
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404 
-from django.contrib.auth import authenticate,login, logout 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate,login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.contrib import messages 
+from django.contrib import messages
 from .forms import MentalHealthProfessionalForm, PatientProfileForm, AvailabilityForm
 from .models import UserProfile, MentalHealthProfessional, PatientProfile, Appointment, Availability,PatientProfessionalRelationship
 from django.db import models
 from django.db.models import Max, Count
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date # Import date
 from django.utils import timezone
 from django.forms.models import model_to_dict
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_datetime, parse_time # Ensure parse_time is imported if used elsewhere
 
 @login_required
 def profile_summary_view(request):
@@ -69,20 +69,30 @@ def professional_profile(request):
 @login_required
 def profile_preview(request):
     user = request.user
+    print(f"DEBUG: User: {user.username}, Role: {user.userprofile.role}")
 
     if hasattr(user, 'mental_health_pro'):
-        # Case: Professional viewing their own profile
+        print("DEBUG: User HAS 'mental_health_pro' attribute.")
         professional = user.mental_health_pro
-
+        print(f"DEBUG: Professional object found: {professional.user.username}")
     else:
-        # Case: Patient viewing their connected professional's profile
+        print("DEBUG: User DOES NOT HAVE 'mental_health_pro' attribute. Falling into patient logic.")
+        # This block is for patients viewing a professional
         relationship = PatientProfessionalRelationship.objects.filter(
             patient=user
         ).select_related('professional').first()
 
-        if relationship and hasattr(relationship.professional, 'mental_health_pro'):
-            professional = relationship.professional.mental_health_pro
+        if relationship:
+            print(f"DEBUG: Relationship found for patient {user.username} with {relationship.professional.username}")
+            if hasattr(relationship.professional, 'mental_health_pro'):
+                professional = relationship.professional.mental_health_pro
+                print(f"DEBUG: Professional found via relationship: {professional.user.username}")
+            else:
+                print("DEBUG: Relationship professional does not have mental_health_pro attribute.")
+                messages.warning(request, "Error finding professional details via relationship.")
+                return redirect('home')
         else:
+            print(f"DEBUG: No patient-professional relationship found for {user.username}.")
             messages.warning(request, "You're not currently connected to any professional.")
             return redirect('home')
 
@@ -185,7 +195,7 @@ def create_from_calendar(request):
                 professional=professional,
                 date=appt_date,
                 time=appt_time,
-                status__in=['pending', 'accepted']
+                status__in=['pending', 'approved'] # Corrected 'accepted' to 'approved' if that's your status name
             ).exists()
 
             if existing_appt:
@@ -221,26 +231,26 @@ def calendar_data(request):
         if not relationships.exists():
             return JsonResponse([], safe=False)  # No professionals? Return empty.
 
-        # If "all" is requested, show all connected professionals
+        # Determine which professional's data to fetch
         if professional_id == 'all':
-            professional_ids = [rel.professional.id for rel in relationships]
-            appointments = Appointment.objects.filter(professional__id__in=professional_ids, patient=user)
-            availabilities = Availability.objects.filter(professional__id__in=professional_ids)
+            professional_users = [rel.professional for rel in relationships]
+            appointments = Appointment.objects.filter(professional__in=professional_users, patient=user)
+            availabilities = Availability.objects.filter(professional__in=professional_users)
+        elif professional_id: # A specific professional is selected
+            try:
+                selected_professional = User.objects.get(id=professional_id, userprofile__role='professional')
+                # Verify the patient is connected to this selected professional
+                if not relationships.filter(professional=selected_professional).exists():
+                    return HttpResponseForbidden("Not connected to this professional.")
+                appointments = Appointment.objects.filter(professional=selected_professional, patient=user)
+                availabilities = Availability.objects.filter(professional=selected_professional)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'Selected professional not found.'}, status=404)
+        else: # Default if no professional_id (or initial load)
+            professional_users = [rel.professional for rel in relationships]
+            appointments = Appointment.objects.filter(professional__in=professional_users, patient=user)
+            availabilities = Availability.objects.filter(professional__in=professional_users)
 
-        # If a specific professional is selected, verify they are connected
-        elif professional_id:
-            professional = get_object_or_404(User, id=professional_id)
-            if not relationships.filter(professional=professional).exists():
-                return HttpResponseForbidden("Not connected to this professional.")
-            
-            appointments = Appointment.objects.filter(professional=professional, patient=user)
-            availabilities = Availability.objects.filter(professional=professional)
-        
-        # Default case (no professional_id): Show all connected professionals
-        else:
-            professional_ids = [rel.professional.id for rel in relationships]
-            appointments = Appointment.objects.filter(professional__id__in=professional_ids, patient=user)
-            availabilities = Availability.objects.filter(professional__id__in=professional_ids)
 
     # PROFESSIONAL ROLE
     elif user_profile.role == 'professional':
@@ -249,7 +259,7 @@ def calendar_data(request):
         availabilities = Availability.objects.filter(professional=professional)
 
     else:
-        # Not a valid combination
+        # Not a valid role/combination
         appointments = []
         availabilities = []
 
@@ -259,18 +269,26 @@ def calendar_data(request):
         'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 0
     }
 
+    # For availability, FullCalendar's 'daysOfWeek' expects an array of numbers (0-6)
+    # and 'startTime'/'endTime' are just times.
     for slot in availabilities:
         day_index = weekdays.get(slot.day_of_week, None)
         if day_index is None:
             continue
 
         events.append({
+            'id': f"avail-{slot.id}", # Ensure unique ID for availabilities too
             'title': 'Available',
             'daysOfWeek': [day_index],
             'startTime': str(slot.start_time),
             'endTime': str(slot.end_time),
-            'display': 'background',
+            'display': 'background', # Makes it a background event
             'color': '#d4f5d4',
+            'extendedProps': { # <--- ADDED: Extended properties for availability
+                'type': 'availability',
+                'day_of_week': slot.day_of_week,
+                'availability_id': slot.id # Pass availability ID if you ever want to delete it
+            }
         })
 
     # ➕ Add appointments
@@ -283,6 +301,11 @@ def calendar_data(request):
             'cancelled': '#777'
         }.get(appt.status, '#3a87ad')
 
+        # Calculate end time for appointment (assuming 1 hour)
+        # Convert appt.time (time object) to a datetime object for timedelta arithmetic
+        start_datetime = datetime.combine(appt.date, appt.time)
+        end_datetime = start_datetime + timedelta(minutes=60) # Assuming 60 minute appointments
+
         events.append({
             'id': appt.id,
             'title': (
@@ -290,11 +313,18 @@ def calendar_data(request):
                 if user_profile.role == 'professional'
                 else appt.professional.username
             ),
-            'start': f"{appt.date}T{appt.time}",
-            'end': f"{appt.date}T{appt.time}",
-            'status': appt.status,
+            'start': f"{appt.date.isoformat()}T{appt.time.isoformat()}", # Use isoformat for date and time
+            'end': f"{end_datetime.date().isoformat()}T{end_datetime.time().isoformat()}", # Use isoformat for date and time
             'color': event_color,
-            'notes': appt.notes,
+            'extendedProps': { # <--- ADDED: Extended properties for appointments
+                'status': appt.status,
+                'notes': appt.notes,
+                'reschedule_status': appt.reschedule_status,
+                'reschedule_request_date': appt.reschedule_request_date.isoformat() if appt.reschedule_request_date else None,
+                'reschedule_request_time': appt.reschedule_request_time.isoformat() if appt.reschedule_request_time else None,
+                'reschedule_reason': appt.reschedule_reason,
+                'type': 'appointment' # <--- CRITICAL: Defines the event type
+            },
             'editable': user_profile.role == 'professional' and appt.status == 'approved'
         })
 
@@ -336,7 +366,9 @@ def reschedule_appointment(request):
         new_date = data.get('new_date')
         new_time = data.get('new_time')
         reason = data.get('reason', '')
+        # Determine if it's a patient request or a professional action
         is_request = data.get('is_request', 'false') == 'true'
+        reschedule_action = data.get('reschedule_action') # 'approve' or 'reject' for professional
 
         try:
             appointment = Appointment.objects.get(id=appointment_id)
@@ -344,18 +376,47 @@ def reschedule_appointment(request):
             # Check permissions
             user_profile = UserProfile.objects.get(user=request.user)
             if user_profile.role == 'patient' and appointment.patient != request.user:
-                return JsonResponse({"error": "You can only reschedule your own appointments."}, status=403)
+                return JsonResponse({"error": "You can only modify your own appointments."}, status=403)
             if user_profile.role == 'professional' and appointment.professional != request.user:
-                return JsonResponse({"error": "You can only reschedule appointments with you."}, status=403)
+                return JsonResponse({"error": "You can only modify appointments with you."}, status=403)
 
-            # Parse new datetime
+            # Handle professional approving/rejecting a reschedule request
+            if user_profile.role == 'professional' and reschedule_action:
+                if appointment.reschedule_status != 'pending':
+                    return JsonResponse({"error": "No pending reschedule request for this appointment."}, status=400)
+
+                if reschedule_action == 'approve':
+                    # Apply the requested new date/time to the actual appointment
+                    if appointment.reschedule_request_date and appointment.reschedule_request_time:
+                        appointment.date = appointment.reschedule_request_date
+                        appointment.time = appointment.reschedule_request_time
+                        appointment.reschedule_status = 'approved'
+                        appointment.save()
+                        return JsonResponse({"message": "Reschedule request approved. Appointment updated."})
+                    else:
+                        return JsonResponse({"error": "Reschedule request details are incomplete."}, status=400)
+                elif reschedule_action == 'reject':
+                    appointment.reschedule_status = 'rejected'
+                    appointment.reschedule_request_date = None
+                    appointment.reschedule_request_time = None
+                    appointment.reschedule_reason = None
+                    appointment.save()
+                    return JsonResponse({"message": "Reschedule request rejected."})
+                else:
+                    return JsonResponse({"error": "Invalid reschedule action."}, status=400)
+
+            # Parse new datetime for new reschedule request or direct professional reschedule
             try:
                 new_datetime = datetime.strptime(f"{new_date} {new_time}", "%Y-%m-%d %H:%M")
             except ValueError:
                 return JsonResponse({"error": "Invalid date/time format."}, status=400)
 
-            # For patients, create a reschedule request
+            # If it's a patient requesting a reschedule
             if is_request and user_profile.role == 'patient':
+                # Check for existing pending reschedule request
+                if appointment.reschedule_status == 'pending':
+                    return JsonResponse({"error": "There is already a pending reschedule request for this appointment."}, status=400)
+                
                 appointment.reschedule_request_date = new_datetime.date()
                 appointment.reschedule_request_time = new_datetime.time()
                 appointment.reschedule_reason = reason
@@ -363,17 +424,36 @@ def reschedule_appointment(request):
                 appointment.save()
                 return JsonResponse({"message": "Reschedule request submitted. Waiting for professional approval."})
             
-            # For professionals, reschedule immediately
-            appointment.date = new_datetime.date()
-            appointment.time = new_datetime.time()
-            if reason:
-                appointment.notes = f"Rescheduled: {reason}"
-            appointment.save()
-            return JsonResponse({"message": "Appointment rescheduled successfully."})
+            # If it's a professional directly rescheduling (or patient re-requesting after rejection/approval)
+            elif user_profile.role == 'professional' or (user_profile.role == 'patient' and appointment.reschedule_status != 'pending'):
+                # Professional directly reschedules or patient reschedules an old appointment
+                appointment.date = new_datetime.date()
+                appointment.time = new_datetime.time()
+                # Clear any existing reschedule request data if direct reschedule
+                appointment.reschedule_status = None
+                appointment.reschedule_request_date = None
+                appointment.reschedule_request_time = None
+                appointment.reschedule_reason = None
+
+                if reason:
+                    # Append or set notes based on existing notes
+                    if appointment.notes:
+                        appointment.notes = f"{appointment.notes}\nRescheduled: {reason}"
+                    else:
+                        appointment.notes = f"Rescheduled: {reason}"
+                appointment.save()
+                return JsonResponse({"message": "Appointment rescheduled successfully."})
+            else:
+                return JsonResponse({"error": "Invalid reschedule scenario."}, status=400)
+
         except Appointment.DoesNotExist:
             return JsonResponse({"error": "Appointment not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': f'An unexpected error occurred: {str(e)}'}, status=500)
+
 
     return JsonResponse({"error": "Invalid request."}, status=400)
+
 
 @csrf_exempt
 @login_required

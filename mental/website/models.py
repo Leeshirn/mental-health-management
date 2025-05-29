@@ -193,14 +193,14 @@ class MentalHealthProfessional(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='mental_health_pro')
     profession = models.CharField(max_length=3, choices=PROFESSION_CHOICES)
     license_number = models.CharField(max_length=50, unique=True)
-    license_state = models.CharField(max_length=50)
-    therapeutic_approaches = models.CharField(max_length=200)  # Comma-separated list of APPROACH_CHOICES
+    license_state = models.CharField(max_length=50, null=True, blank=True)
+    therapeutic_approaches = models.CharField(max_length=200, null=True, blank=True)  # Comma-separated list of APPROACH_CHOICES
     bio = models.TextField(blank=True)
     profile_complete = models.BooleanField(default=False)
     
     # Professional Details
     years_of_experience = models.PositiveIntegerField(default=0)
-    qualifications = models.TextField()
+    qualifications = models.TextField(null=True, blank=True)
     areas_of_focus = models.TextField(help_text="Specific mental health conditions or populations you specialize in")
     
     # Practice Information
