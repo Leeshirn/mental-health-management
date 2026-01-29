@@ -3,6 +3,7 @@
 
 The global shortage of mental health professionals has created a bottleneck in patient care, leading to long wait times and delayed treatment. **Wellnest** addresses this systemic issue by providing a streamlined platform for rapid professional matching and tool-based support. Our goal is to maximize the reach of existing professionals while providing patients with the immediate resources they need to manage their well-being effectively.
 
+![Wellnest Dashboard Screen](mental/static/images/dashboard.png)
 ---
 
 ## 🛠️ System Architecture & Roles
@@ -15,12 +16,14 @@ Wellnest is designed as a dual-sided ecosystem to ensure efficiency for both the
 * **Self-Service Toolkit:** Immediate access to self help tools such as a journal and mood tracking while awaiting appointments.
 * **Professional calendar:** Access to your profesional's calendar to see when they are available for a session
 * **Privacy:** Control what your professional is abale to access on your dashboard
+![Wellnest Patient Dashboard Screen](mental/static/images/patient.png)
 
 ### 👨‍⚕️ For Professionals (Providers)
 * **Smart Dashboard:** A centralized view of patient history
 * **Calendar:** A calendar where they can accept or reject patient bookings and also view awaiting appointments
 * **Case Management:** Tools to track patient progress over time using data-driven insights from user-logged moods and activities.
 * **Resource Distribution:** Easily share personalized digital "prescriptions" (articles, exercises, or journals) with patients throug notes section in the app.
+![Wellnest Professional Dashboard Screen](mental/static/images/professional.png)
 
 ### Administrators
 * **Verify professionals:** Verify professionals on the backend to give thema access to the platform
