@@ -1,1 +1,4 @@
 virtual/
+mental/__pycache__
+mental/website/__pycache__
+mental/mental/settings
